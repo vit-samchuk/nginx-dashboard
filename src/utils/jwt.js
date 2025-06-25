@@ -8,4 +8,4 @@ const sign = (id, username) => jwt.sign(
 
 const verify = (token) => jwt.verify(token, JWT_SECRET);
   
-module.exports = { sign }
+module.exports = { sign, verify }

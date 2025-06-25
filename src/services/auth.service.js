@@ -10,7 +10,7 @@ const login = (username, password) => {
   if (!valid) return null;
 
   const token = jwt.sign(user.id, user.username);
-
+console.log(token)
   return { token, user };
 }
 

@@ -1,3 +1,4 @@
+const db = require('../db/db');
 const { eq } = require('drizzle-orm');
 const { users } = require('../db/schema');
 
