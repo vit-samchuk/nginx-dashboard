@@ -1,5 +1,7 @@
 const { sqliteTable, text, integer } = require('drizzle-orm/sqlite-core');
-import { sql } from 'drizzle-orm';
+const drizzle = require('drizzle-orm');
+const sql = drizzle.sql;
+
 const { CONFIG_VALIDATION } = require('../config/constants')
 
 const schema = {};
