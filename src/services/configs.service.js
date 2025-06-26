@@ -41,7 +41,7 @@ async function initSync() {
             hash,
             enabled,
             validation_status: CONFIG_VALIDATION.UNKNOWN,
-            last_modified: Date.now(),
+            last_modified: new Date(),
           })
           .where(eq(configs.id, existing.id))
           .run();
@@ -54,7 +54,7 @@ async function initSync() {
           hash,
           enabled,
           validation_status: CONFIG_VALIDATION.UNKNOWN,
-          last_modified: Date.now()
+          last_modified: new Date()
         }).run();
         console.log(`✅ Synced new config: ${file}`);
       }
