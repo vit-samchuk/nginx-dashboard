@@ -8,11 +8,10 @@ function authMiddleware(req, res, next) {
 
   console.log(token)
   try {
-    const user = jwt.verify(token);
-    req.user = user;
+    const { id, username } = jwt.verify(token);
+    req.user = { id, username };
     next();
   } catch (e) {
-    console.log(e);
     return res.status(401).json({ message: 'Invalid token' });
   }
 }

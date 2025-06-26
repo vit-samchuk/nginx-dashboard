@@ -1,8 +1,9 @@
-const express = require('express');
+const { Router } = require('express');
 const { COOKIE_NAME } = require('../config/constants');
 const authService = require('../services/auth.service')
 const auth = require('../middleware/auth.middleware')
-const router = express.Router();
+
+const router = Router();
 
 router.post('/login', (req, res) => {
   const { username, password } = req.body;
@@ -16,7 +17,15 @@ router.post('/login', (req, res) => {
       maxAge: 60 * 60 * 24000 * 10 // 10 days
   });
 
-  res.json({ message: 'OK' });
+  res.status(200).json({ success: true, message: 'User logged in' });
+});
+
+router.post('/logout', (req, res) => {
+  res.clearCookie(COOKIE_NAME, {
+    httpOnly: true,
+  });
+
+  res.status(200).json({ success: true, message: 'User logged out' });
 });
 
 router.get('/me', auth, (req, res) => res.json({ user: req.user }))

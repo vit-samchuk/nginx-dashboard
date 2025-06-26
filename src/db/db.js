@@ -10,9 +10,10 @@ const db = drizzle(sqlite, { schema });
 
 function initDb() {
   try {
-    sqlite
-      .prepare(sql.createUsersTable)
-      .run();
+    for (const [name, statement] of Object.entries(sql)) {
+      sqlite.prepare(statement).run();
+      console.log(`✅ Executed: #${name}`);
+    }
   } catch (e) {
     console.error('DB init error:', e);
     process.exit(1);
@@ -21,14 +22,14 @@ function initDb() {
 
 function initDefaultData() {
   const existing = db.select().from(schema.users).get();
-
+  
   if (!existing) {
     const hashed = bcrypt.hashSync('admin', 10);
     db.insert(schema.users).values({
       username: 'admin',
       password: hashed
     }).run();
-
+    
     console.log('✅ Default admin user created (username: admin, password: admin)');
   }
 }
