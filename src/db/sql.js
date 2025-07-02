@@ -17,6 +17,7 @@ sql.createConfigsTable = `
     content TEXT NOT NULL,
     hash TEXT NOT NULL,
     validation_status TEXT DEFAULT '${CONFIG_VALIDATION.UNKNOWN}',
+    validation_error TEXT,
     last_modified INTEGER NOT NULL,
     description TEXT,
     enabled INTEGER NOT NULL DEFAULT 0,

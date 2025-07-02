@@ -18,6 +18,7 @@ schema.configs = sqliteTable('configs', {
   content: text('content').notNull(),
   hash: text('hash').notNull(),
   validation_status: text('validation_status').default(CONFIG_VALIDATION.UNKNOWN),
+  validation_error: text('validation_error'),
   last_modified: integer('last_modified', { mode: 'timestamp' }).notNull(),
   description: text('description'),
   enabled: integer('enabled', { mode: 'boolean' }).notNull().default(false),
