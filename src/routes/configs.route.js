@@ -1,5 +1,5 @@
 const { Router } = require('express');
-const configService = require('../services/configs.service')
+const configsService = require('../services/configs.service')
 
 const handler = require('../utils/async-handler')
 const router = Router();
@@ -26,7 +26,7 @@ router.post('/create', handler(async (req, res) => {
     throw err;
   }
   
-  const config = await configService.createConfig(name, content)
+  const config = await configsService.createConfig(name, content)
   res.json({ config })
 }))
 
@@ -40,22 +40,22 @@ router.post('/create-and-enable', handler(async (req, res) => {
     throw err;
   }
   
-  const config = await configService.createConfig(name, content)
-  const result = await configService.enableConfig(config.id)
+  const config = await configsService.createConfig(name, content)
+  const result = await configsService.enableConfig(config.id)
   
   res.json(result)
 }))
 
 // Enable config
 router.post('/enable/:id', handler(async (req, res) => {
-  const result = await configService.enableConfig(req.params.id)
+  const result = await configsService.enableConfig(req.params.id)
   
   res.json(result) // { config, ?errors }
 }))
 
 // Disable config
 router.post('/disable/:id', handler(async (req, res) => {
-  const config = await configService.disableConfig(req.params.id)
+  const config = await configsService.disableConfig(req.params.id)
   
   res.json({ config })
 }))
@@ -69,7 +69,7 @@ router.post('/update/:id', handler(async (req, res) => {
     err.status = 400;
     throw err;
   }
-  const result = await configService.updateConfigContent(req.params.id, content)
+  const result = await configsService.updateConfigContent(req.params.id, content)
   
   res.json(result) // { config, ?errors }
 }))
@@ -77,7 +77,7 @@ router.post('/update/:id', handler(async (req, res) => {
 
 // Delete config
 router.delete('/:id', handler(async (req, res) => {
-  await configService.deleteConfig(req.params.id)
+  await configsService.deleteConfig(req.params.id)
   
   res.json({ success: true })
 }))
@@ -87,7 +87,7 @@ router.delete('/:id', handler(async (req, res) => {
 
 // Test and reload nginx
 router.post('/nginx-reload', handler(async (req, res) => {
-  const result = await configService.test()
+  const result = await configsService.test()
   
   if (result.success) {
     await configService.reload()
