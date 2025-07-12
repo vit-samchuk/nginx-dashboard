@@ -1,37 +1,41 @@
 <!DOCTYPE html>
 <html lang="en" x-data="dashboardApp" x-init="init()">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>NGINX Config Dashboard</title>
-
+  
   <!-- Shoelace UI -->
   <script type="module" src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.15.0/cdn/shoelace.js"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.15.0/cdn/themes/light.css" />
-
+  
   <!-- Alpine.js -->
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-
+  
   <!-- CodeMirror -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/nginx/nginx.min.js"></script>
-
+  
   <!-- Custom CSS -->
   <link rel="stylesheet" href="./style.css" />
   
   <!-- Eruda -->
-  <script src="//cdn.jsdelivr.net/npm/eruda"></script>
-  <script>eruda.init();</script>
+  <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+  <script>
+    eruda.init();
+  </script>
 </head>
-<body>
 
+<body>
+  
   <!-- Header -->
   <header class="topbar">
     <h2>NGINX Config Manager</h2>
     <sl-icon-button name="person" label="Login" @click="showLogin()"></sl-icon-button>
   </header>
-
+  
   <!-- Main -->
   <main class="container">
     <section>
@@ -39,7 +43,7 @@
         <h3>Configs</h3>
         <sl-button size="small" variant="primary" @click="newConfig()">New Config</sl-button>
       </div>
-
+      
       <template x-for="config in configs" :key="config.id">
         <div class="config-item">
           <span x-text="config.name"></span>
@@ -53,12 +57,12 @@
         </div>
       </template>
     </section>
-
+    
     <section style="margin-top: 2rem;">
       <sl-button variant="success" @click="reloadNginx()">Reload NGINX</sl-button>
     </section>
   </main>
-
+  
   <!-- Config Editor Modal -->
   <sl-dialog id="editorModal" label="Edit Config" class="w-full max-w-3xl">
     <sl-input placeholder="Name" x-model="editorName" class="mb-3"></sl-input>
@@ -68,7 +72,7 @@
       <sl-button variant="default" @click="closeEditor()">Close</sl-button>
     </div>
   </sl-dialog>
-
+  
   <!-- Login Modal -->
   <sl-dialog id="loginModal" label="Login">
     <sl-input placeholder="Username" x-model="login.username" class="mb-2"></sl-input>
@@ -77,16 +81,18 @@
       <sl-button variant="primary" @click="doLogin()">Login</sl-button>
     </div>
   </sl-dialog>
-
+  
   <!-- Alpine app logic -->
   <script>
+    const URL = "https://nginx-dashboard.do-code.com";
+
     const dashboardApp = {
       configs: [],
       editor: null,
       editorName: '',
       currentId: null,
       login: { username: '', password: '' },
-
+      
       init() {
         this.editor = CodeMirror.fromTextArea(document.getElementById("editor"), {
           mode: "nginx",
@@ -95,15 +101,15 @@
         });
         this.loadConfigs();
       },
-
+      
       async loadConfigs() {
-        const res = await fetch("/configs/list");
+        const res = await fetch(`(${URL})/configs/list`);
         if (res.status === 403) return this.showLogin();
         this.configs = await res.json();
       },
-
+      
       openConfig(id) {
-        fetch(`/configs/id/${id}`)
+        fetch(`${URL}/configs/id/${id}`)
           .then(res => {
             if (res.status === 403) return this.showLogin();
             return res.json();
@@ -115,23 +121,23 @@
             document.getElementById("editorModal").show();
           });
       },
-
+      
       newConfig() {
         this.editorName = '';
         this.editor.setValue('');
         this.currentId = null;
         document.getElementById("editorModal").show();
       },
-
+      
       saveConfig() {
         const content = this.editor.getValue();
         const name = this.editorName;
-        const url = this.currentId
-          ? `/configs/update/${this.currentId}`
-          : `/configs/create`;
-
+        const url = this.currentId ?
+          `${URL}/configs/update/${this.currentId}` :
+          `${URL}/configs/create`;
+        
         const payload = { name, content };
-
+        
         fetch(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -141,29 +147,29 @@
           this.loadConfigs();
         });
       },
-
+      
       toggleEnable(config) {
-        const url = config.enabled
-          ? `/configs/disable/${config.id}`
-          : `/configs/enable/${config.id}`;
-
+        const url = config.enabled ?
+          `${URL}/configs/disable/${config.id}` :
+          `${URL}/configs/enable/${config.id}`;
+        
         fetch(url, { method: 'POST' }).then(() => this.loadConfigs());
       },
-
+      
       deleteConfig(id) {
-        fetch(`/configs/${id}`, { method: 'DELETE' }).then(() => this.loadConfigs());
+        fetch(`${URL}/configs/${id}`, { method: 'DELETE' }).then(() => this.loadConfigs());
       },
-
+      
       reloadNginx() {
-        fetch("/configs/nginx-reload", { method: 'POST' });
+        fetch(`${URL}/configs/nginx-reload`, { method: 'POST' });
       },
-
+      
       showLogin() {
         document.getElementById("loginModal").show();
       },
-
+      
       doLogin() {
-        fetch("/auth/login", {
+        fetch(`${URL}/auth/login`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(this.login)
@@ -174,11 +180,12 @@
           }
         });
       },
-
+      
       closeEditor() {
         document.getElementById("editorModal").hide();
       }
     };
   </script>
 </body>
+
 </html>
