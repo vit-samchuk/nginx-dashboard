@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en" x-data="dashboardApp" x-init="init()">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NGINX Config Dashboard</title>
+
+  <!-- Shoelace UI -->
+  <script type="module" src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.15.0/cdn/shoelace.js"></script>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.15.0/cdn/themes/light.css" />
+
+  <!-- Alpine.js -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+  <!-- CodeMirror -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/nginx/nginx.min.js"></script>
+
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+
+  <!-- Header -->
+  <header class="topbar">
+    <h2>NGINX Config Manager</h2>
+    <sl-icon-button name="person" label="Login" @click="showLogin()"></sl-icon-button>
+  </header>
+
+  <!-- Main -->
+  <main class="container">
+    <section>
+      <div class="header-row">
+        <h3>Configs</h3>
+        <sl-button size="small" variant="primary" @click="newConfig()">New Config</sl-button>
+      </div>
+
+      <template x-for="config in configs" :key="config.id">
+        <div class="config-item">
+          <span x-text="config.name"></span>
+          <div class="actions">
+            <sl-button size="small" @click="openConfig(config.id)">Edit</sl-button>
+            <sl-button size="small" @click="toggleEnable(config)">
+              <template x-text="config.enabled ? 'Disable' : 'Enable'"></template>
+            </sl-button>
+            <sl-button size="small" variant="danger" @click="deleteConfig(config.id)">Delete</sl-button>
+          </div>
+        </div>
+      </template>
+    </section>
+
+    <section style="margin-top: 2rem;">
+      <sl-button variant="success" @click="reloadNginx()">Reload NGINX</sl-button>
+    </section>
+  </main>
+
+  <!-- Config Editor Modal -->
+  <sl-dialog id="editorModal" label="Edit Config" class="w-full max-w-3xl">
+    <sl-input placeholder="Name" x-model="editorName" class="mb-3"></sl-input>
+    <textarea id="editor" hidden></textarea>
+    <div class="mt-3" style="text-align: right;">
+      <sl-button variant="primary" @click="saveConfig()">Save</sl-button>
+      <sl-button variant="default" @click="closeEditor()">Close</sl-button>
+    </div>
+  </sl-dialog>
+
+  <!-- Login Modal -->
+  <sl-dialog id="loginModal" label="Login">
+    <sl-input placeholder="Username" x-model="login.username" class="mb-2"></sl-input>
+    <sl-input type="password" placeholder="Password" x-model="login.password"></sl-input>
+    <div class="mt-3" style="text-align: right;">
+      <sl-button variant="primary" @click="doLogin()">Login</sl-button>
+    </div>
+  </sl-dialog>
+
+  <!-- Alpine app logic -->
+  <script>
+    const dashboardApp = {
+      configs: [],
+      editor: null,
+      editorName: '',
+      currentId: null,
+      login: { username: '', password: '' },
+
+      init() {
+        this.editor = CodeMirror.fromTextArea(document.getElementById("editor"), {
+          mode: "nginx",
+          lineNumbers: true,
+          theme: "default"
+        });
+        this.loadConfigs();
+      },
+
+      async loadConfigs() {
+        const res = await fetch("/configs/list");
+        if (res.status === 403) return this.showLogin();
+        this.configs = await res.json();
+      },
+
+      openConfig(id) {
+        fetch(`/configs/id/${id}`)
+          .then(res => {
+            if (res.status === 403) return this.showLogin();
+            return res.json();
+          })
+          .then(cfg => {
+            this.editorName = cfg.name;
+            this.editor.setValue(cfg.content);
+            this.currentId = cfg.id;
+            document.getElementById("editorModal").show();
+          });
+      },
+
+      newConfig() {
+        this.editorName = '';
+        this.editor.setValue('');
+        this.currentId = null;
+        document.getElementById("editorModal").show();
+      },
+
+      saveConfig() {
+        const content = this.editor.getValue();
+        const name = this.editorName;
+        const url = this.currentId
+          ? `/configs/update/${this.currentId}`
+          : `/configs/create`;
+
+        const payload = { name, content };
+
+        fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        }).then(() => {
+          document.getElementById("editorModal").hide();
+          this.loadConfigs();
+        });
+      },
+
+      toggleEnable(config) {
+        const url = config.enabled
+          ? `/configs/disable/${config.id}`
+          : `/configs/enable/${config.id}`;
+
+        fetch(url, { method: 'POST' }).then(() => this.loadConfigs());
+      },
+
+      deleteConfig(id) {
+        fetch(`/configs/${id}`, { method: 'DELETE' }).then(() => this.loadConfigs());
+      },
+
+      reloadNginx() {
+        fetch("/configs/nginx-reload", { method: 'POST' });
+      },
+
+      showLogin() {
+        document.getElementById("loginModal").show();
+      },
+
+      doLogin() {
+        fetch("/auth/login", {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(this.login)
+        }).then(res => {
+          if (res.ok) {
+            document.getElementById("loginModal").hide();
+            this.loadConfigs();
+          }
+        });
+      },
+
+      closeEditor() {
+        document.getElementById("editorModal").hide();
+      }
+    };
+  </script>
+</body>
+</html>
