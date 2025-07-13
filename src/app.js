@@ -12,7 +12,7 @@ const errorHandler = require('./middleware/error.handler');
 const app = express();
 
 // Middlewares
-//app.use(helmet());
+app.use(helmet());
 app.use(express.json());
 app.use(cookieParser());
 
