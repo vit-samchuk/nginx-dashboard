@@ -18,7 +18,7 @@ app.use(cookieParser());
 
 app.use(express.static(path.join(__dirname, '../public')));
 app.use((req, res, next) => {
-  res.removeHeader("Content-Security-Policy");
+  res.setHeader('Content-Security-Policy', "default-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com");
   next();
 });
 
