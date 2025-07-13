@@ -8,19 +8,14 @@ const rateLimit = require('express-rate-limit');
 const routes = require('./routes');
 const errorHandler = require('./middleware/error.handler');
 
-
 const app = express();
 
 // Middlewares
-app.use(helmet());
+app.use(helmet({ contentSecurityPolicy: false }));
 app.use(express.json());
 app.use(cookieParser());
 
 app.use(express.static(path.join(__dirname, '../public')));
-app.use((req, res, next) => {
-  res.setHeader('Content-Security-Policy', "default-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com");
-  next();
-});
 
 
 // Rate limiter (e.g. for login)

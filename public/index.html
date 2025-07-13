@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" x-data="dashboardApp" x-init="init()">
+<html lang="en" x-data="dashboardApp">
 
 <head>
   <meta charset="UTF-8" />
@@ -14,8 +14,8 @@
   
   <!-- Shoelace UI -->
   <script type="module" src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.15.0/cdn/shoelace.js"></script>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.15.0/cdn/themes/light.css" />
-  
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/themes/dark.css" />
+
   <!-- CodeMirror -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css" />
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
@@ -83,12 +83,6 @@
   
   <!-- Alpine app logic -->
   <script>
-    window.addEventListener('error', function(e) {
-      console.error('Script error:', e.error);
-      alert('Error: ' + e.message);
-    });
-    
-    console.log('Testing CDN availability...');
     const URL = "https://nginx-dashboard.do-code.com";
     
     const dashboardApp = {
