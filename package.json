@@ -8,6 +8,7 @@
     "better-sqlite3": "^12.1.1",
     "chokidar": "^4.0.3",
     "cookie-parser": "^1.4.7",
+    "cors": "^2.8.5",
     "dotenv": "^16.5.0",
     "drizzle-orm": "^0.44.2",
     "express": "^5.1.0",
