@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en" x-data="dashboardApp">
+<html lang="en" x-data="dashboardApp" class="sl-theme-dark">
 
 <head>
   <meta charset="UTF-8" />
@@ -15,16 +15,17 @@
   <!-- Shoelace UI -->
   <script type="module" src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.15.0/cdn/shoelace.js"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/themes/dark.css" />
-
+  
   <!-- CodeMirror -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/nginx/nginx.min.js"></script>
   <!-- Custom CSS -->
   <link rel="stylesheet" href="./style.css" />
-    <!-- Alpine.js -->
+  <!-- Alpine.js -->
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
- 
+  
 </head>
 
 <body>
@@ -32,7 +33,7 @@
   <!-- Header -->
   <header class="topbar">
     <h2>NGINX</h2>
-    <sl-icon-button name="person" label="Login" @click="showLogin()"></sl-icon-button>
+    <sl-icon-button :name="!guest ? 'person-check-fill' : 'person-x-fill'" label="Login" @click="auth()"></sl-icon-button>
   </header>
   
   <!-- Main -->
@@ -43,22 +44,39 @@
         <sl-button size="small" variant="primary" @click="newConfig()">New Config</sl-button>
       </div>
       
-      <template x-for="config in configs" :key="config.id">
-        <div class="config-item">
-          <span x-text="config.name"></span>
-          <div class="actions">
-            <sl-button size="small" @click="openConfig(config.id)">Edit</sl-button>
-            <sl-button size="small" @click="toggleEnable(config)">
-              <template x-text="config.enabled ? 'Disable' : 'Enable'"></template>
-            </sl-button>
-            <sl-button size="small" variant="danger" @click="deleteConfig(config.id)">Delete</sl-button>
-          </div>
+      
+      <!-- Show loading state -->
+      <div x-show="configs.loading" class="loading-message">
+        ⏳ Loading configurations...
+      </div>
+      
+      <!-- Show error if config list failed to load -->
+      <div x-show="configs.err && !configs.loading" class="error-message">
+        ❌ Failed to load configuration list
+      </div>
+      
+      <!-- Show message if there are no configs and no error -->
+      <div x-show="!configs.err && !configs.loading && configs.list.length === 0" class="empty-message">
+        🗂️ No configurations found
+      </div>
+      
+      <!-- Show config list -->
+      <template x-if="!configs.err && !configs.loading && configs.list.length > 0">
+        <div>
+          <template x-for="config in configs.list" :key="config.id">
+            <div class="config-item">
+              <span x-text="config.name"></span>
+              <div class="actions">
+                <sl-button size="small" @click="openConfig(config.id)">Edit</sl-button>
+                <sl-button size="small" @click="toggleEnable(config)">
+                  <span x-text="config.enabled ? 'Disable' : 'Enable'"></span>
+                </sl-button>
+                <sl-button size="small" variant="danger" @click="deleteConfig(config.id)">Delete</sl-button>
+              </div>
+            </div>
+          </template>
         </div>
       </template>
-    </section>
-    
-    <section style="margin-top: 2rem;">
-      <sl-button variant="success" @click="reloadNginx()">Reload NGINX</sl-button>
     </section>
   </main>
   
@@ -74,9 +92,9 @@
   
   <!-- Login Modal -->
   <sl-dialog id="loginModal" label="Login">
-    <sl-input placeholder="Username" x-model="login.username" class="mb-2"></sl-input>
-    <sl-input type="password" placeholder="Password" x-model="login.password"></sl-input>
-    <div class="mt-3" style="text-align: right;">
+    <sl-input placeholder="Username" x-model="login.username"></sl-input>
+    <sl-input type="password" placeholder="Password" x-model="login.password" password-toggle></sl-input>
+    <div>
       <sl-button variant="primary" @click="doLogin()">Login</sl-button>
     </div>
   </sl-dialog>
@@ -86,25 +104,55 @@
     const URL = "https://nginx-dashboard.do-code.com";
     
     const dashboardApp = {
-      configs: [],
+      guest: true,
+      configs: {
+        loading: true,
+        list: [],
+        err: false
+      },
       editor: null,
       editorName: '',
       currentId: null,
       login: { username: '', password: '' },
+      editorModal: null,
+      loginModal: null,
       
       init() {
         this.editor = CodeMirror.fromTextArea(document.getElementById("editor"), {
           mode: "nginx",
+          theme: "material",
           lineNumbers: true,
-          theme: "default"
+          tabSize: 2,
+          indentUnit: 2,
+          indentWithTabs: false,
+          autofocus: true,
+          lineWrapping: true,
         });
+        
         this.loadConfigs();
+        
+        this.editorModal = document.getElementById("editorModal");
+        this.loginModal = document.getElementById("loginModal");
+      },
+      
+      auth() {
+        return this.guest ? this.showLogin() : this.showLogout()
       },
       
       async loadConfigs() {
-        const res = await fetch(`${URL}/configs/list`);
-        if (res.status === 403) return this.showLogin();
-        this.configs = await res.json();
+        try {
+          this.configs.loading = true;
+          const res = await fetch(`${URL}/configs/list`);
+          console.log(res)
+          this.configs.list = await res.json();
+          this.configs.err = false;
+        } catch (err) {
+          console.log(err)
+          this.configs.list = []
+          this.configs.err = true;
+        } finally {
+          this.configs.loading = false;
+        }
       },
       
       openConfig(id) {
@@ -117,7 +165,7 @@
             this.editorName = cfg.name;
             this.editor.setValue(cfg.content);
             this.currentId = cfg.id;
-            document.getElementById("editorModal").show();
+            this.editorModal.show();
           });
       },
       
@@ -125,7 +173,8 @@
         this.editorName = '';
         this.editor.setValue('');
         this.currentId = null;
-        document.getElementById("editorModal").show();
+        this.editorModal.show();
+        setTimeout(() => this.editor.refresh(), 500);
       },
       
       saveConfig() {
@@ -142,7 +191,7 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         }).then(() => {
-          document.getElementById("editorModal").hide();
+          this.editorModal.hide();
           this.loadConfigs();
         });
       },
@@ -163,8 +212,10 @@
         fetch(`${URL}/configs/nginx-reload`, { method: 'POST' });
       },
       
-      showLogin() {
-        document.getElementById("loginModal").show();
+      showLogin() { this.loginModal.show() },
+      
+      showLogout() {
+        
       },
       
       doLogin() {
@@ -173,15 +224,20 @@
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(this.login)
         }).then(res => {
+          console.log(res)
+          return
           if (res.ok) {
-            document.getElementById("loginModal").hide();
+            this.loginModal.hide();
             this.loadConfigs();
           }
-        });
+        }).catch(err => {
+          console.log(err)
+          
+        })
       },
       
       closeEditor() {
-        document.getElementById("editorModal").hide();
+        this.editorModal.hide();
       }
     };
   </script>
