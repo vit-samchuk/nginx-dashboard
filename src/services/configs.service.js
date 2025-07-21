@@ -157,7 +157,7 @@ const disableConfig = async (id) => {
   
   db.update(configs).set({ enabled: false }).where(eq(configs.id, id)).run()
   
-  return { ...cfg, enabled: false };
+  return { config: { ...cfg, enabled: false } };
 }
 
 // create config. if successful, create db record
@@ -169,7 +169,7 @@ const createConfig = async (name, content) => {
   
   await nginx.createConfig(configPath, content)
   
-  const cfg = db.insert(configs).values({
+  const config = db.insert(configs).values({
     path: configPath,
     content,
     hash,
@@ -178,7 +178,7 @@ const createConfig = async (name, content) => {
     last_modified: new Date()
   }).run();
   
-  return cfg;
+  return { config };
 }
 
 const updateConfigContent = async (id, content) => {

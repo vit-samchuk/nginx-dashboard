@@ -15,23 +15,27 @@
   <!-- Shoelace UI -->
   <script type="module" src="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.15.0/cdn/shoelace.js"></script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@shoelace-style/shoelace@2.20.1/cdn/themes/dark.css" />
+  <!-- Reset -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.min.css">
   
-  <!-- CodeMirror -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.css" />
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/material.min.css">
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/codemirror.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.13/mode/nginx/nginx.min.js"></script>
+  <!-- ACE Editor CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.31.1/ace.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.31.1/mode-nginx.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.31.1/theme-monokai.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.31.1/ext-language_tools.min.js"></script>
+  
   <!-- Custom CSS -->
   <link rel="stylesheet" href="./style.css" />
   <!-- Alpine.js -->
   <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+  
   
 </head>
 
 <body>
   
   <!-- Header -->
-  <header class="topbar">
+  <header>
     <h2>NGINX</h2>
     <sl-icon-button :name="!guest ? 'person-check-fill' : 'person-x-fill'" label="Login" @click="auth()"></sl-icon-button>
   </header>
@@ -63,30 +67,74 @@
       <!-- Show config list -->
       <template x-if="!configs.err && !configs.loading && configs.list.length > 0">
         <div>
-          <template x-for="config in configs.list" :key="config.id">
-            <div class="config-item">
-              <span x-text="config.name"></span>
-              <div class="actions">
-                <sl-button size="small" @click="openConfig(config.id)">Edit</sl-button>
-                <sl-button size="small" @click="toggleEnable(config)">
-                  <span x-text="config.enabled ? 'Disable' : 'Enable'"></span>
-                </sl-button>
-                <sl-button size="small" variant="danger" @click="deleteConfig(config.id)">Delete</sl-button>
+          <template x-for="config in configs.list.sort((a, b) => b.enabled - a.enabled)" :key="config.id">
+            <div :class="configs.active.includes(config.id) ? 'config config-wrap' : 'config'">
+              <div class="config-item" :class="config.enabled ? '' : 'disabled'" @click="configClick(config.id)">
+                <span x-text="config.path.split('/').at(-1)"></span>
+                <div x-show="config.validation_status === 'invalid'" class="status inwalid">
+                  <sl-icon name="exclamation-diamond"></sl-icon>
+                </div>
+                <div x-show="config.validation_status === 'unknown'" class="status unknown">
+                  <sl-icon name="question-diamond"></sl-icon>
+                </div>
+              </div>
+              <div x-show="configs.active.includes(config.id)">
+                <p class="path" x-text="config.path"></p>
+                <p class="time" x-text="(new Date(config.last_modified)).toLocaleString()"></p>
+                <p class="error" x-show="config.validation_status === 'invalid'" x-text="config.validation_error"></p>
+                <div class="buttons">
+                  <sl-icon-button name="pencil" label="Edit" @click="editConfig(config)" style="font-size: 20px; color: green;"></sl-icon-button>
+                  <sl-switch :checked="config.enabled" @sl-change="toggle($event.target, config)"
+                    style="--width: 40px; --height: 20px; --thumb-size: 16px;"></sl-switch>
+                  
+                  <sl-icon-button name="trash-fill" label="Delete" @click="deleteConfig(config)" style="font-size: 20px; color: red;"></sl-icon-button>
+                </div>
               </div>
             </div>
           </template>
         </div>
       </template>
     </section>
+    
+    <!-- ### EDITOR ### -->
+    <div :class="editor.visible ? 'editor-wrap' : 'editor-wrap hidden'">
+      <div class="editor_header">
+        <p x-show="!!editor.cfg" class="title" x-text="editor.cfg?.path"></p>
+        <p x-show="!editor.cfg" class="title">
+          <sl-input :value="editor.name" @sl-input="editor.name = $event.target.value" placeholder="domain.com" size="small">
+            <span class="prefix" slot="prefix">Config name:</span>
+          </sl-input>
+        </p>
+        <p class="error" x-show="editor.cfg?.validation_status === 'invalid'" x-text="editor.cfg?.validation_error"></p>
+      </div>
+      <div class="editor" id="editor"></div>
+      <div class="editor_footer">
+        <div class="toolbar">
+          <sl-button size="small" pill variant="default" style="opacity: 0.8;" @click="insertTab(); $event.target.blur()" tabindex="-1">Tab</sl-button>
+          <sl-button size="small" pill variant="default" style="opacity: 0.8;" @click="insertPair('{}'); $event.preventDefault()" tabindex="-1">{}</sl-button>
+          <sl-button size="small" pill variant="default" style="opacity: 0.8;" @click="insertPair('[]'); $event.preventDefault()" tabindex="-1">[]</sl-button>
+          <sl-button size="small" pill variant="default" style="opacity: 0.8;" @click="insertPair('&quot;&quot;'); $event.preventDefault()"
+            tabindex="-1">""</sl-button>
+          <sl-button size="small" pill variant="default" style="opacity: 0.8;" @click="toggleComment(); $event.preventDefault()" tabindex="-1">#</sl-button>
+        </div>
+        
+        <div class="buttons">
+          <sl-button @click='saveConfig()' variant="primary">Save</sl-button>
+          <sl-button x-show="!editor.cfg" @click='saveAndEnableConfig()' variant="success">Save & Enable</sl-button>
+          <sl-button @click='closeEditor()' variant="danger">Close</sl-button>
+        </div>
+        <div x-show="!!editor.cfg" :class="editor.cfg?.enabled ? 'status enabled' : 'status disabled'"
+          x-text="editor.cfg?.enabled ? 'Config enabled' : 'Not enabled'"></div>
+      </div>
+    </div>
   </main>
   
-  <!-- Config Editor Modal -->
-  <sl-dialog id="editorModal" label="Edit Config" class="w-full max-w-3xl">
-    <sl-input placeholder="Name" x-model="editorName" class="mb-3"></sl-input>
-    <textarea id="editor" hidden></textarea>
-    <div class="mt-3" style="text-align: right;">
-      <sl-button variant="primary" @click="saveConfig()">Save</sl-button>
-      <sl-button variant="default" @click="closeEditor()">Close</sl-button>
+  <!-- Editor Confirm Modal -->
+  <sl-dialog id="editorConfirmModal" label="Unsaved data">
+    You have unsaved data. Do you want to close editor?
+    <div slot="footer" style="display: flex; gap: 10px; justify-content: end">
+      <sl-button slot="footer" variant="primary" @click="closeEditor(true)">Close</sl-button>
+      <sl-button slot="footer" variant="danger" @click="closeConfirmModal()">Cancel</sl-button>
     </div>
   </sl-dialog>
   
@@ -103,113 +151,231 @@
   <script>
     const URL = "https://nginx-dashboard.do-code.com";
     
-    const dashboardApp = {
+    const _fetch = async (path, options = {}) => {
+      console.log(path, options)
+      if (path !== '/configs/list') return 'ok';
+      try {
+        const res = await fetch(`${URL}${path}`, options);
+        
+        if (res.status === 401) {
+          console.warn('User is unauthorized. Logging out...');
+          // logoutUser();
+        }
+        
+        if (!res.ok) {
+          const text = await res.text().catch(() => '');
+          throw new Error(`Error ${res.status}: ${text || res.statusText}`);
+        }
+        
+        return res.json();
+      } catch (err) {
+        console.error('Request error:', err);
+        throw err;
+      }
+    };
+    
+    const _post = (path, data) =>
+      _fetch(path, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(data)
+      });
+    
+    const _delete = (path) => _fetch(path, { method: 'DELETE' });
+    
+    const api = {
+      login: (u, p) => _post('/auth/login', { username: u, password: p }),
+      logout: () => _post('/auth/logout'),
+      getCurrentUser: () => _fetch('/auth/me'),
+      loadConfigs: () => _fetch('/configs/list'),
+      getConfigById: (id) => _fetch(`/configs/id/${id}`),
+      createConfig: (name, content) => _post('/configs/create', { name, content }),
+      createAndEnableConfig: (name, content) => _post('/configs/create-and-enable', { name, content }),
+      enableConfig: (id) => _post(`/configs/enable/${id}`),
+      disableConfig: (id) => _post(`/configs/disable/${id}`),
+      updateConfig: (id, content) => _post(`/configs/update/${id}`, { content }),
+      deleteConfig: (id) => _delete(`/configs/${id}`),
+      reloadNginx: () => _post('/configs/nginx-reload'),
+    };
+    
+    const dashboardApp = () => ({
       guest: true,
       configs: {
         loading: true,
         list: [],
-        err: false
+        err: false,
+        active: [],
       },
-      editor: null,
-      editorName: '',
+      editor: {
+        item: null,
+        cfg: null,
+        name: '',
+        visible: false,
+      },
       currentId: null,
       login: { username: '', password: '' },
-      editorModal: null,
       loginModal: null,
+      editorConfirmModal: null,
       
-      init() {
-        this.editor = CodeMirror.fromTextArea(document.getElementById("editor"), {
-          mode: "nginx",
-          theme: "material",
-          lineNumbers: true,
+      async init() {
+        this.editor.item = ace.edit("editor");
+        this.editor.item.setTheme("ace/theme/monokai");
+        this.editor.item.session.setMode("ace/mode/nginx");
+        this.editor.item.setOptions({
           tabSize: 2,
-          indentUnit: 2,
-          indentWithTabs: false,
-          autofocus: true,
-          lineWrapping: true,
+          useSoftTabs: true,
+          showPrintMargin: false,
+          enableBasicAutocompletion: true,
+          enableLiveAutocompletion: true,
+          enableSnippets: true
         });
         
-        this.loadConfigs();
-        
-        this.editorModal = document.getElementById("editorModal");
+        await this.loadConfigs();
         this.loginModal = document.getElementById("loginModal");
+        this.editorConfirmModal = document.getElementById("editorConfirmModal");
+        window.addEventListener('popstate', (event) => {
+          if (event.state?.editorOpen || this.editor.visible) {
+            this.closeEditor();
+          }
+        });
       },
       
       auth() {
         return this.guest ? this.showLogin() : this.showLogout()
       },
       
+      configClick(id) {
+        this.configs.active.includes(id) ?
+          this.configs.active.splice(this.configs.active.indexOf(id), 1) :
+          this.configs.active.push(id);
+      },
+      
       async loadConfigs() {
         try {
           this.configs.loading = true;
-          const res = await fetch(`${URL}/configs/list`);
-          console.log(res)
-          this.configs.list = await res.json();
+          const data = await api.loadConfigs();
+          this.configs.list = data.list || []
           this.configs.err = false;
         } catch (err) {
-          console.log(err)
           this.configs.list = []
           this.configs.err = true;
+          this.showErrorToast(err)
         } finally {
           this.configs.loading = false;
         }
       },
-      
-      openConfig(id) {
-        fetch(`${URL}/configs/id/${id}`)
-          .then(res => {
-            if (res.status === 403) return this.showLogin();
-            return res.json();
-          })
-          .then(cfg => {
-            this.editorName = cfg.name;
-            this.editor.setValue(cfg.content);
-            this.currentId = cfg.id;
-            this.editorModal.show();
-          });
+      editConfig(cfg) {
+        this.editor.cfg = cfg;
+        this.editor.item.setValue(cfg.content, 1);
+        this.showEditor();
       },
-      
+      showEditor() {
+        this.editor.item.session.getUndoManager().markClean();
+        history.pushState({ editorOpen: true }, '');
+        this.editor.visible = true;
+      },
+      closeEditor(force = false) {
+        if (force) {
+          this.closeConfirmModal();
+          this.hideEditor();
+          return
+        }
+        const changed = !this.editor.item.session.getUndoManager().isClean();
+        if (!changed) return this.hideEditor();
+        if (!history.state?.editorOpen) history.pushState({ editorOpen: true }, '');
+        this.editorConfirmModal.show()
+      },
+      closeConfirmModal() {
+        this.editorConfirmModal.hide()
+      },
+      hideEditor() {
+        this.editor.visible = false;
+        this.editor.cfg = null;
+        this.editor.item.setValue('', 1);
+        this.editor.name = '';
+        if (history.state?.editorOpen) history.back();
+      },
       newConfig() {
-        this.editorName = '';
-        this.editor.setValue('');
-        this.currentId = null;
-        this.editorModal.show();
-        setTimeout(() => this.editor.refresh(), 500);
+        this.showEditor();
       },
-      
-      saveConfig() {
-        const content = this.editor.getValue();
-        const name = this.editorName;
-        const url = this.currentId ?
-          `${URL}/configs/update/${this.currentId}` :
-          `${URL}/configs/create`;
+      async saveConfig(enable = false) {
+        const content = this.editor.item.getValue()
         
-        const payload = { name, content };
+        if (!this.editor.cfg && !this.editor.name.length) {
+          return this.showErrorToast('Config name not specified!')
+        }
         
-        fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        }).then(() => {
-          this.editorModal.hide();
-          this.loadConfigs();
-        });
+        const cfg = this.editor.cfg ? this.editor.cfg.id : this.editor.name;
+        try {
+          const res = await (this.editor.cfg ?
+            api.updateConfig(cfg, content) :
+            api.createConfig(cfg, content)
+          )
+          
+          if (!res.config) return this.showErrorToast('Unknown error while creating config...')
+          
+          if (this.editor.cfg && this.editor.cfg.enabled && !res.config.enabled) {
+            this.showToast('Config saved but disabled! Check for errors...', 'warning')
+          } else {
+            this.showToast('Config saved!', 'success')
+          }
+          this.configs.list = [
+            ...this.configs.list.filter(cfg => cfg.id !== res.config.id),
+            res.config
+          ];
+          
+          this.hideEditor();
+        } catch (err) {
+          this.showErrorToast(err)
+        }
       },
-      
-      toggleEnable(config) {
-        const url = config.enabled ?
-          `${URL}/configs/disable/${config.id}` :
-          `${URL}/configs/enable/${config.id}`;
+      async saveAndEnableConfig() {
+        const content = this.editor.item.getValue()
         
-        fetch(url, { method: 'POST' }).then(() => this.loadConfigs());
+        try {
+          const res = await api.createAndEnableConfig(this.editor.name, content)
+          if (!res.config) return this.showErrorToast()
+          this.configs.list.push(res.config)
+          if (!res.config.enabled) {
+            this.showToast('Config created but not enabled! Check for errors...', 'warning')
+          } else {
+            this.showToast('Config created and enabled!', 'success')
+          }
+          this.hideEditor();
+        } catch (err) {
+          this.showErrorToast(err);
+        }
       },
       
-      deleteConfig(id) {
-        fetch(`${URL}/configs/${id}`, { method: 'DELETE' }).then(() => this.loadConfigs());
+      async toggle(el, config) {
+        const enable = el.checked;
+        
+        el.disabled = true;
+        try {
+          await (enable ?
+            api.enableConfig(config.id) :
+            api.disableConfig(config.id));
+          
+          await this.loadConfigs();
+        } catch (err) {
+          this.showErrorToast(err)
+          el.checked = !enable;
+        } finally {
+          el.disabled = false;
+        }
       },
       
-      reloadNginx() {
-        fetch(`${URL}/configs/nginx-reload`, { method: 'POST' });
+      
+      
+      async deleteConfig(cfg) {
+        try {
+          await api.deleteConfig(id);
+          await this.loadConfigs();
+        } catch (error) {
+          //
+        }
       },
       
       showLogin() { this.loginModal.show() },
@@ -218,28 +384,85 @@
         
       },
       
-      doLogin() {
-        fetch(`${URL}/auth/login`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(this.login)
-        }).then(res => {
-          console.log(res)
-          return
-          if (res.ok) {
-            this.loginModal.hide();
-            this.loadConfigs();
-          }
-        }).catch(err => {
-          console.log(err)
-          
+      async doLogin() {
+        try {
+          await api.login(this.login.username, this.login.password)
+          this.loginModal.hide();
+          await this.loadConfigs();
+        } catch (err) {
+          //
+        }
+      },
+      showToast(message, variant = 'primary') {
+        const alert = Object.assign(document.createElement('sl-alert'), {
+          variant,
+          closable: true,
+          duration: 4000,
+          innerHTML: `<sl-icon slot="icon" name="info-circle"></sl-icon>${message}`,
+        })
+        
+        document.body.appendChild(alert)
+        alert.toast().then(() => {
+          setTimeout(() => alert.remove(), 5000)
         })
       },
-      
-      closeEditor() {
-        this.editorModal.hide();
+      showErrorToast(err) {
+        let message = 'Error! Something went wrong...';
+        
+        if (typeof err === 'string') {
+          message = err;
+        } else if (err && typeof err === 'object' && typeof err.message === 'string') {
+          message = err.message;
+        }
+        
+        return this.showToast(message, 'danger');
+      },
+      insertTab() {
+        this.editor.item.insert('\t')
+        this.editor.item.focus()
+      },
+      insertPair(pair) {
+        const [open, close] = pair.split('');
+        this.editor.item.insert(open + close);
+        this.editor.item.navigateLeft(1);
+        this.editor.item.focus()
+      },
+      toggleComment() {
+        const editor = this.editor.item;
+        const session = editor.getSession();
+        const selection = editor.getSelectionRange();
+        const lines = [];
+        
+        // Получаем строки
+        for (let row = selection.start.row; row <= selection.end.row; row++) {
+          lines.push(session.getLine(row));
+        }
+        
+        // Проверяем, все ли строки уже закомментированы
+        const allCommented = lines.every(line => line.trim().startsWith('#'));
+        
+        for (let row = selection.start.row; row <= selection.end.row; row++) {
+          const line = session.getLine(row);
+          if (allCommented) {
+            // Убираем # (расскомментируем)
+            const uncommented = line.replace(/^(\s*)#\s?/, '$1');
+            session.replace({
+              start: { row, column: 0 },
+              end: { row, column: line.length }
+            }, uncommented);
+          } else {
+            // Добавляем # (комментируем)
+            session.replace({
+              start: { row, column: 0 },
+              end: { row, column: 0 }
+            }, '# ');
+          }
+        }
+        this.editor.item.focus()
       }
-    };
+      
+      
+    });
   </script>
 </body>
 

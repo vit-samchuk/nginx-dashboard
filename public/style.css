@@ -1,31 +1,94 @@
-body {
-  font-family: system-ui, sans-serif;
+*,
+*::before,
+*::after {
   margin: 0;
   padding: 0;
+  box-sizing: border-box;
 }
 
-.topbar {
+html,
+body {
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  font-family: system-ui, sans-serif;
+}
+
+header {
+  flex-shrink: 0;
+  
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.5rem 1rem;
+  padding: 5px 10px;
   border-bottom: 1px solid #ddd;
 }
 
+main {
+  width: 100%;
+  flex: 1 1 auto;
+  overflow-y: auto;
+}
+
 .container {
-  padding: 1.5rem;
+  padding: 15px;
   max-width: 800px;
   margin: auto;
 }
 
-.config-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.75rem;
-  border: 1px solid #ccc;
+.config-wrap {
+  border-left: 1px solid #ccc;
   border-radius: 6px;
-  margin-bottom: 0.5rem;
+  background: #42445A7A;
+}
+
+.config {
+  
+  .config-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 3px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    margin-top: 0.5rem;
+    
+    &.disabled {
+      opacity: .7;
+    }
+    
+  }
+  
+  
+  p {
+    padding: 3px;
+  }
+  
+  .path {}
+  
+  .time {
+    opacity: 0.6;
+    text-align: right;
+  }
+  
+  .error {
+    color: orangered;
+    opacity: 0.8;
+  }
+  
+  .buttons {
+    display: flex;
+    justify-content: space-evenly;
+    align-items: center;
+    
+    margin-top: 10px;
+  }
 }
 
 .header-row {
@@ -35,11 +98,113 @@ body {
   margin-bottom: 1rem;
 }
 
-.actions sl-button {
-  margin-left: 0.5rem;
+.status {
+  &.inwalid {
+    color: orangered;
+  }
+  
+  &.unknown {
+    color: slategray;
+  }
 }
 
 
 #loginModal sl-input {
   margin-bottom: 10px;
+}
+
+/* —--------- */
+
+.editor-wrap {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  inset: 0;
+  
+  display: flex;
+  flex-direction: column;
+  
+  transition: left 0.3s ease, opacity 0.3s ease;
+  background-color: #272822;
+  color: #F8F8F2;
+  
+  &.hidden {
+    left: 110vw;
+    opacity: 0;
+  }
+  
+  .editor_header {
+    border-bottom: 1px solid #0A0D2A;
+    
+    .title {
+      padding: 5px;
+    }
+    
+    .error {
+      background: indianred;
+      padding: 5px 10px;
+    }
+  }
+  
+  .editor_footer {
+    
+    .buttons {
+      display: flex;
+      justify-content: space-evenly;
+      gap: 10px;
+      border-top: 1px solid #0A0D2A;
+      
+      padding: 5px;
+      
+      sl-button {
+        flex: 1;
+      }
+    }
+    
+    .status {
+      text-align: center;
+      padding: 3px 5px;
+      color: black;
+      font-weight: bold;
+      
+      &.enabled {
+        background: #B6FCB1;
+      }
+      
+      &.disabled {
+        background: #B6B6B6;
+      }
+    }
+    
+    .toolbar {
+      display: flex;
+      justify-content: space-evenly;
+      gap: 6px;
+      padding: 3px;
+    }
+    
+    .toolbar sl-button {
+      user-select: none;
+      pointer-events: auto;
+    }
+    
+    .toolbar sl-button:focus {
+      outline: none;
+    }
+    
+  }
+  
+  & .editor {
+    flex: 1;
+    overflow: hidden;
+    
+    height: 100%;
+  }
+  
+  & .prefix {
+    display: inline-block;
+    padding: 0 3px 0 10px;
+  }
 }
