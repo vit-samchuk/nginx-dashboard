@@ -1,8 +1,6 @@
 module.exports = (err, req, res, next) => {
   if (typeof err === 'object') {
-    for (const key in err) {
-      console.warn(`${key}:`, err[key]);
-    }
+    console.dir(err, { depth: null });
   } else {
     console.warn(err)
   }
