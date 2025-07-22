@@ -169,7 +169,7 @@ const createConfig = async (name, content) => {
   
   await nginx.createConfig(configPath, content)
   
-  const config = db.insert(configs).values({
+  const res = db.insert(configs).values({
     path: configPath,
     content,
     hash,
@@ -178,7 +178,7 @@ const createConfig = async (name, content) => {
     last_modified: new Date()
   }).run();
   
-  return { config };
+  return { config: getConfigById(res.config.lastInsertRowid) };
 }
 
 const updateConfigContent = async (id, content) => {

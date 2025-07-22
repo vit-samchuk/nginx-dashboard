@@ -149,11 +149,12 @@
   
   <!-- Alpine app logic -->
   <script>
+    if ('virtualKeyboard' in navigator) navigator.virtualKeyboard.overlaysContent = true;
     const URL = "https://nginx-dashboard.do-code.com";
     
     const _fetch = async (path, options = {}) => {
       console.log(path, options)
-      if (path !== '/configs/list') return 'ok';
+      //if (path !== '/configs/list') return 'ok';
       try {
         const res = await fetch(`${URL}${path}`, options);
         

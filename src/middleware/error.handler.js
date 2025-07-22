@@ -1,4 +1,13 @@
 module.exports = (err, req, res, next) => {
+ console.log(typeof err)
+ console.log(err)
+ console.log({
+   status: err.status,
+   code: err.code,
+   path: err.path,
+   message: err.message
+ })
+  
   const status = err.status || 500;
 
   if (status >= 500) {

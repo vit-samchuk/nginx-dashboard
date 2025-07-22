@@ -8,13 +8,14 @@
 
 html,
 body {
-  height: 100%;
+  height: auto;
   margin: 0;
   overflow: hidden;
 }
 
 body {
   display: flex;
+  overflow: hidden;
   flex-direction: column;
   position: relative;
   font-family: system-ui, sans-serif;
@@ -119,8 +120,9 @@ main {
   position: fixed;
   top: 0;
   left: 0;
+  bottom: 0;
   width: 100vw;
-  height: 100vh;
+  height: calc(100% - env(keyboard-inset-height, 0px));
   inset: 0;
   
   display: flex;
