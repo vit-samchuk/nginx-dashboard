@@ -26,8 +26,8 @@ router.post('/create', handler(async (req, res) => {
     throw err;
   }
   
-  const config = await configsService.createConfig(name, content)
-  res.json({ config })
+  const res = await configsService.createConfig(name, content)
+  res.json(res)
 }))
 
 // Create and enable
@@ -57,7 +57,7 @@ router.post('/enable/:id', handler(async (req, res) => {
 router.post('/disable/:id', handler(async (req, res) => {
   const config = await configsService.disableConfig(req.params.id)
   
-  res.json({ config })
+  res.json(config)
 }))
 
 // Update config

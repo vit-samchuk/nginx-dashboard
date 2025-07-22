@@ -177,7 +177,6 @@ const createConfig = async (name, content) => {
     validation_status: CONFIG_VALIDATION.UNKNOWN,
     last_modified: new Date()
   }).run();
-  console.log(res)
   
   return { config: getConfigById(res.lastInsertRowid) };
 }
