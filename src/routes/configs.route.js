@@ -26,8 +26,8 @@ router.post('/create', handler(async (req, res) => {
     throw err;
   }
   
-  const res = await configsService.createConfig(name, content)
-  res.json(res)
+  const result = await configsService.createConfig(name, content)
+  res.json(result)
 }))
 
 // Create and enable
