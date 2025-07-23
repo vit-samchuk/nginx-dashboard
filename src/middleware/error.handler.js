@@ -1,8 +1,5 @@
 module.exports = (err, req, res, next) => {
   if (typeof err === 'object') {
-    Object.getOwnPropertyNames(err).forEach(key => {
-      console.log(`${key}:`, err[key]);
-    });
     const props = new Set();
     
     let current = err;
@@ -21,29 +18,27 @@ module.exports = (err, req, res, next) => {
   
   
   
-  let status = err.status || 500;
-  
-  if (status >= 500) {
-    console.error(err.stack || err);
-  }
-  
-  let response = {
-    status,
+  const response = {
+    status: err.status || 500,
     message: status >= 500 ?
       'Internal Server Error' : err.message || 'Something went wrong',
   };
   
-  
-  if (err.code === 'SQLITE_CONSTRAINT_UNIQUE') {
-    status = 409;
-    response.status = status;
-    response.message = 'Conflict. Already exists!';
+  if (err.name === 'SqliteError') {
+    console.log(err.toString())
+    console.log(err.toLocaleString)
+    if (err.code === 'SQLITE_CONSTRAINT_UNIQUE') {
+      response.status = 409;
+      response.message = `Conflict! ${err.message}`;
+    }
   }
   
   
-  if (status < 500 && err.data) {
+  if (response.status >= 500) console.error(err.stack || err);
+  
+  if (response.status < 500 && err.data) {
     response.data = err.data;
   }
   
-  res.status(status).json(response);
+  res.status(response.status).json(response);
 };
