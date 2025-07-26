@@ -25,13 +25,10 @@ schema.configs = sqliteTable('configs', {
   tags: text('tags'),
 })
 
-schema.backups = sqliteTable('backups', {
+schema.snippets = sqliteTable('snippets', {
   id: integer('id').primaryKey({ autoIncrement: true }),
-  config_id: integer('config_id').notNull().references(() => configs.id, { onDelete: 'cascade' }),
+  name: text('name').notNull().unique(),
   content: text('content').notNull(),
-  hash: text('hash').notNull(),
-  backup_reason: text('backup_reason').notNull().default('auto_before_update'),
-  created_at: integer('created_at', { mode: 'timestamp' }).notNull().default(sql`(unixepoch())`),
 })
 
 

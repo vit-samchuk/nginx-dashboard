@@ -111,6 +111,7 @@
       <div class="editor_footer">
         <div class="toolbar">
           <sl-button size="small" pill variant="default" style="opacity: 0.8;" @click="insertTab(); $event.target.blur()" tabindex="-1">Tab</sl-button>
+          <sl-button size="small" pill variant="default" style="opacity: 0.8;" @click="format(); $event.target.blur()" tabindex="-1">F</sl-button>
           <sl-button size="small" pill variant="default" style="opacity: 0.8;" @click="insertPair('{}'); $event.preventDefault()" tabindex="-1">{}</sl-button>
           <sl-button size="small" pill variant="default" style="opacity: 0.8;" @click="insertPair('[]'); $event.preventDefault()" tabindex="-1">[]</sl-button>
           <sl-button size="small" pill variant="default" style="opacity: 0.8;" @click="insertPair('&quot;&quot;'); $event.preventDefault()"
@@ -158,9 +159,9 @@
       try {
         const res = await fetch(`${URL}${path}`, options);
         
-        if (res.status === 401) {
-          console.warn('User is unauthorized. Logging out...');
-          // logoutUser();
+        if (res.status === 401 && path !== '/auth/me') {
+          errorToast('Permission denied! Guests are not allowed to do this action.')
+          logoutUser();
         }
         
         if (!res.ok) {
@@ -185,7 +186,28 @@
       });
     
     const _delete = (path) => _fetch(path, { method: 'DELETE' });
-    
+    const toast = (message, variant = 'primary') => {
+      const alert = Object.assign(document.createElement('sl-alert'), {
+        variant,
+        closable: true,
+        duration: 4000,
+        innerHTML: `<sl-icon slot="icon" name="info-circle"></sl-icon>${message}`,
+      })
+      
+      document.body.appendChild(alert)
+      alert.toast().then(() => { setTimeout(() => alert.remove(), 5000) })
+    }
+    const errorToast = (err) => {
+      let message = 'Error! Something went wrong...';
+      
+      if (typeof err === 'string') {
+        message = err;
+      } else if (err && typeof err === 'object' && typeof err.message === 'string') {
+        message = err.message;
+      }
+      
+      return toast(message, 'danger');
+    }
     const api = {
       login: (u, p) => _post('/auth/login', { username: u, password: p }),
       logout: () => _post('/auth/logout'),
@@ -200,6 +222,38 @@
       deleteConfig: (id) => _delete(`/configs/${id}`),
       reloadNginx: () => _post('/configs/nginx-reload'),
     };
+    
+    const logoutUser = async () => {
+      if (dashboardApp.guest) return;
+      await api.logout()
+      dashboardApp.guest = true;
+    }
+    
+    const formatNginxConfig = (config) => {
+      const lines = config.split('\n');
+      let indentLevel = 0;
+      const indentSize = 4;
+      
+      const formatted = lines.map(line => {
+        const trimmed = line.trim();
+        
+        if (trimmed === '') return '';
+        
+        // Уменьшаем отступ до строки, если она закрывает блок
+        if (trimmed.startsWith('}')) indentLevel--;
+        
+        const indent = ' '.repeat(indentSize * indentLevel);
+        const result = indent + trimmed;
+        
+        // Увеличиваем отступ после строки, если она открывает блок
+        if (trimmed.endsWith('{')) indentLevel++;
+        
+        return result;
+      });
+      
+      return formatted.join('\n');
+    }
+    
     
     const dashboardApp = () => ({
       guest: true,
@@ -232,6 +286,14 @@
           enableLiveAutocompletion: true,
           enableSnippets: true
         });
+        try {
+          const me = await api.getCurrentUser();
+          console.log({ me })
+          this.guest = false;
+        } catch (err) {
+          this.guest = true;
+        }
+        
         
         await this.loadConfigs();
         this.loginModal = document.getElementById("loginModal");
@@ -262,7 +324,7 @@
         } catch (err) {
           this.configs.list = []
           this.configs.err = true;
-          this.showErrorToast(err)
+          errorToast(err)
         } finally {
           this.configs.loading = false;
         }
@@ -305,7 +367,7 @@
         const content = this.editor.item.getValue()
         
         if (!this.editor.cfg && !this.editor.name.length) {
-          return this.showErrorToast('Config name not specified!')
+          return errorToast('Config name not specified!')
         }
         
         const cfg = this.editor.cfg ? this.editor.cfg.id : this.editor.name;
@@ -315,21 +377,22 @@
             api.createConfig(cfg, content)
           )
           
-          if (!res.config) return this.showErrorToast('Unknown error while creating config...')
+          if (!res.config) return errorToast('Unknown error while creating config...')
           
           if (this.editor.cfg && this.editor.cfg.enabled && !res.config.enabled) {
-            this.showToast('Config saved but disabled! Check for errors...', 'warning')
+            toast('Config saved but disabled! Check for errors...', 'warning')
           } else {
-            this.showToast('Config saved!', 'success')
+            toast('Config saved!', 'success')
           }
           this.configs.list = [
             ...this.configs.list.filter(cfg => cfg.id !== res.config.id),
             res.config
           ];
-          
-          this.hideEditor();
+          this.hideEditor()
+          this.editConfig(res.config)
+          // this.editor.cfg = res.config;
         } catch (err) {
-          this.showErrorToast(err)
+          errorToast(err)
         }
       },
       async saveAndEnableConfig() {
@@ -337,16 +400,17 @@
         
         try {
           const res = await api.createAndEnableConfig(this.editor.name, content)
-          if (!res.config) return this.showErrorToast()
+          if (!res.config) return errorToast()
           this.configs.list.push(res.config)
           if (!res.config.enabled) {
-            this.showToast('Config created but not enabled! Check for errors...', 'warning')
+            toast('Config created but not enabled! Check for errors...', 'warning')
           } else {
-            this.showToast('Config created and enabled!', 'success')
+            toast('Config created and enabled!', 'success')
           }
           this.hideEditor();
+          this.editConfig(res.config)
         } catch (err) {
-          this.showErrorToast(err);
+          toast(err);
         }
       },
       
@@ -361,62 +425,46 @@
           
           await this.loadConfigs();
         } catch (err) {
-          this.showErrorToast(err)
+          toast(err)
           el.checked = !enable;
         } finally {
           el.disabled = false;
         }
       },
       
-      
-      
       async deleteConfig(cfg) {
         try {
-          await api.deleteConfig(id);
+          await api.deleteConfig(cfg.id);
           await this.loadConfigs();
-        } catch (error) {
-          //
+        } catch (err) {
+          errorToast(err)
         }
       },
       
       showLogin() { this.loginModal.show() },
       
-      showLogout() {
-        
+      async showLogout() {
+        // todo: actually show logout modal
+        await api.logout()
+        this.guest = true;
       },
       
       async doLogin() {
         try {
           await api.login(this.login.username, this.login.password)
           this.loginModal.hide();
-          await this.loadConfigs();
+          this.guest = false;
+          toast('Authorization success')
         } catch (err) {
-          //
+          this.guest = true;
+          errorToast(err)
         }
       },
-      showToast(message, variant = 'primary') {
-        const alert = Object.assign(document.createElement('sl-alert'), {
-          variant,
-          closable: true,
-          duration: 4000,
-          innerHTML: `<sl-icon slot="icon" name="info-circle"></sl-icon>${message}`,
-        })
-        
-        document.body.appendChild(alert)
-        alert.toast().then(() => {
-          setTimeout(() => alert.remove(), 5000)
-        })
-      },
-      showErrorToast(err) {
-        let message = 'Error! Something went wrong...';
-        
-        if (typeof err === 'string') {
-          message = err;
-        } else if (err && typeof err === 'object' && typeof err.message === 'string') {
-          message = err.message;
-        }
-        
-        return this.showToast(message, 'danger');
+      format() {
+        const raw = this.editor.item.getValue();
+        const formatted = formatNginxConfig(raw);
+        this.editor.item.setValue(formatted, 1)
+        this.editor.item.focus()
       },
       insertTab() {
         this.editor.item.insert('\t')

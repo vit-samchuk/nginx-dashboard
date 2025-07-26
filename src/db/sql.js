@@ -26,15 +26,11 @@ sql.createConfigsTable = `
 `;
 
 
-sql.createBackupsTable = `
+sql.createSnippetsTable = `
   CREATE TABLE IF NOT EXISTS backups (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    config_id INTEGER NOT NULL,
     content TEXT NOT NULL,
-    hash TEXT NOT NULL,
-    backup_reason TEXT NOT NULL DEFAULT '${BACKUP_REASON.AUTO_BEFORE_UPDATE}',
-    created_at INTEGER NOT NULL DEFAULT (unixepoch()),
-    FOREIGN KEY (config_id) REFERENCES configs(id) ON DELETE CASCADE
+    name TEXT NOT NULL UNIQUE,
   );
 `;
 

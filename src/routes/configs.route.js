@@ -1,5 +1,6 @@
 const { Router } = require('express');
 const configsService = require('../services/configs.service')
+const auth = require('../middleware/auth.middleware')
 
 const handler = require('../utils/async-handler')
 const router = Router();
@@ -17,7 +18,7 @@ router.get('/id/:id', handler(async (req, res) => {
 }))
 
 // Create config
-router.post('/create', handler(async (req, res) => {
+router.post('/create', auth, handler(async (req, res) => {
   const { name, content } = req.body
   
   if (!name || !content) {
@@ -31,7 +32,7 @@ router.post('/create', handler(async (req, res) => {
 }))
 
 // Create and enable
-router.post('/create-and-enable', handler(async (req, res) => {
+router.post('/create-and-enable', auth, handler(async (req, res) => {
   const { name, content } = req.body
   
   if (!name || !content) {
@@ -47,21 +48,21 @@ router.post('/create-and-enable', handler(async (req, res) => {
 }))
 
 // Enable config
-router.post('/enable/:id', handler(async (req, res) => {
+router.post('/enable/:id', auth, handler(async (req, res) => {
   const result = await configsService.enableConfig(req.params.id)
   
   res.json(result) // { config, ?errors }
 }))
 
 // Disable config
-router.post('/disable/:id', handler(async (req, res) => {
+router.post('/disable/:id', auth, handler(async (req, res) => {
   const config = await configsService.disableConfig(req.params.id)
   
   res.json(config)
 }))
 
 // Update config
-router.post('/update/:id', handler(async (req, res) => {
+router.post('/update/:id', auth, handler(async (req, res) => {
   const { content } = req.body
   
   if (!content) {
@@ -76,7 +77,7 @@ router.post('/update/:id', handler(async (req, res) => {
 
 
 // Delete config
-router.delete('/:id', handler(async (req, res) => {
+router.delete('/:id', auth, handler(async (req, res) => {
   await configsService.deleteConfig(req.params.id)
   
   res.json({ success: true })
@@ -86,7 +87,7 @@ router.delete('/:id', handler(async (req, res) => {
 
 
 // Test and reload nginx
-router.post('/nginx-reload', handler(async (req, res) => {
+router.post('/nginx-reload', auth, handler(async (req, res) => {
   const result = await configsService.test()
   
   if (result.success) {
