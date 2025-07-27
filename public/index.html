@@ -152,8 +152,8 @@
   <sl-dialog id="logoutModal" label="Logout">
     <p>Are you sure you want to logout?</p>
     <div slot="footer" style="display: flex; gap: 10px; justify-content: end">
-      <sl-button slot="footer" variant="primary" @click="logoutUser()">Yes</sl-button>
-      <sl-button slot="footer" variant="danger" @click="logoutMofal?.hide()">No</sl-button>
+      <sl-button slot="footer" variant="primary" @click="logout()">Yes</sl-button>
+      <sl-button slot="footer" variant="danger" @click="logoutModal?.hide()">No</sl-button>
     </div>
   </sl-dialog>
   
@@ -168,7 +168,7 @@
       try {
         const res = await fetch(`${URL}${path}`, options);
         
-        if (res.status === 401 && path !== '/auth/me') {
+        if (res.status === 401 && !path.startsWith('/auth/')) {
           errorToast('Permission denied! Guests are not allowed to do this action.')
           logoutUser();
         }
@@ -221,15 +221,24 @@
       login: (u, p) => _post('/auth/login', { username: u, password: p }),
       logout: () => _post('/auth/logout'),
       getCurrentUser: () => _fetch('/auth/me'),
-      loadConfigs: () => _fetch('/configs/list'),
-      getConfigById: (id) => _fetch(`/configs/id/${id}`),
-      createConfig: (name, content) => _post('/configs/create', { name, content }),
-      createAndEnableConfig: (name, content) => _post('/configs/create-and-enable', { name, content }),
-      enableConfig: (id) => _post(`/configs/enable/${id}`),
-      disableConfig: (id) => _post(`/configs/disable/${id}`),
-      updateConfig: (id, content) => _post(`/configs/update/${id}`, { content }),
-      deleteConfig: (id) => _delete(`/configs/${id}`),
-      reloadNginx: () => _post('/configs/nginx-reload'),
+      configs: {
+        list: () => _fetch('/configs/list'),
+        getById: (id) => _fetch(`/configs/id/${id}`),
+        create: (name, content) => _post('/configs/create', { name, content }),
+        createAndEnable: (name, content) => _post('/configs/create-and-enable', { name, content }),
+        enable: (id) => _post(`/configs/enable/${id}`),
+        disable: (id) => _post(`/configs/disable/${id}`),
+        update: (id, content) => _post(`/configs/update/${id}`, { content }),
+        delete: (id) => _delete(`/configs/${id}`),
+      },
+      snippets: {
+        list: () => _fetch('/snippets/list'),
+        getById: (id) => _fetch(`/snippets/id/${id}`),
+        create: (name, content) => _post('/snippets/create', { name, content }),
+        update: (id, name, content) => _post(`/snippets/update/${id}`, { name, content }),
+        delete: (id) => _delete(`/snippets/${id}`)
+      },
+      reloadNginx: () => _post('/configs/nginx-reload')
     };
     
     const logoutUser = async () => {
@@ -272,6 +281,9 @@
         err: false,
         active: [],
       },
+      snippets: {
+        list: []
+      },
       editor: {
         item: null,
         cfg: null,
@@ -297,15 +309,18 @@
           enableSnippets: true
         });
         try {
-          const me = await api.getCurrentUser();
-          console.log({ me })
+          await api.getCurrentUser();
           this.guest = false;
         } catch (err) {
           this.guest = true;
         }
         
         
-        await this.loadConfigs();
+        await Promise.all([
+          this.loadConfigs(),
+          this.loadSnippets()
+        ]);
+        
         this.loginModal = document.getElementById("loginModal");
         this.logoutModal = document.getElementById("logoutModal");
         this.editorConfirmModal = document.getElementById("editorConfirmModal");
@@ -329,7 +344,7 @@
       async loadConfigs() {
         try {
           this.configs.loading = true;
-          const data = await api.loadConfigs();
+          const data = await api.configs.list();
           this.configs.list = data.list || []
           this.configs.err = false;
         } catch (err) {
@@ -338,6 +353,15 @@
           errorToast(err)
         } finally {
           this.configs.loading = false;
+        }
+      },
+      async loadSnippets() {
+        try {
+          const data = await api.snippets.list();
+          this.snippets.list = data.list || [];
+        } catch (err) {
+          this.snippets.list = [];
+          errorToast(err)
         }
       },
       editConfig(cfg) {
@@ -384,8 +408,8 @@
         const cfg = this.editor.cfg ? this.editor.cfg.id : this.editor.name;
         try {
           const res = await (this.editor.cfg ?
-            api.updateConfig(cfg, content) :
-            api.createConfig(cfg, content)
+            api.configs.update(cfg, content) :
+            api.configs.create(cfg, content)
           )
           
           if (!res.config) return errorToast('Unknown error while creating config...')
@@ -410,7 +434,7 @@
         const content = this.editor.item.getValue()
         
         try {
-          const res = await api.createAndEnableConfig(this.editor.name, content)
+          const res = await api.configs.createAndEnable(this.editor.name, content)
           if (!res.config) return errorToast()
           this.configs.list.push(res.config)
           if (!res.config.enabled) {
@@ -431,8 +455,8 @@
         el.disabled = true;
         try {
           await (enable ?
-            api.enableConfig(config.id) :
-            api.disableConfig(config.id));
+            api.configs.enable(config.id) :
+            api.configs.disable(config.id));
           
           await this.loadConfigs();
         } catch (err) {
@@ -445,7 +469,7 @@
       
       async deleteConfig(cfg) {
         try {
-          await api.deleteConfig(cfg.id);
+          await api.configs.delete(cfg.id);
           await this.loadConfigs();
         } catch (err) {
           errorToast(err)
@@ -458,8 +482,10 @@
       
       async logout() {
         try {
-          await api.logout()
-        this.guest = true;
+          await api.logout();
+          this.guest = true;
+          this.logoutModal.hide();
+          toast("Logout success");
         } catch (err) {
           errorToast(err)
         }

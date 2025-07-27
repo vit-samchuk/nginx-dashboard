@@ -28,7 +28,7 @@ router.post('/create', auth, handler(async (req, res) => {
   res.json(result);
 }));
 
-router.post('/:id', auth, handler(async (req, res) => {
+router.post('/update/:id', auth, handler(async (req, res) => {
   const { name, content } = req.body;
 
   if (!name || !content) {

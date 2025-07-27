@@ -20,7 +20,7 @@ module.exports = (err, req, res, next) => {
   
   const response = {
     status: err.status || 500,
-    message: status >= 500 ?
+    message: err.status >= 500 ?
       'Internal Server Error' : err.message || 'Something went wrong',
   };
   
