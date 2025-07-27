@@ -6,7 +6,7 @@ const auth = require('../middleware/auth.middleware')
 const router = Router();
 
 router.post('/login', (req, res) => {
-  consolw.log("LOGIN ROUTE")
+  console.log("LOGIN ROUTE")
   const { username, password } = req.body;
   if (!username || !password) return res.status(400).json({ message: 'Missing credentials' });
 
