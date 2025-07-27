@@ -6,12 +6,13 @@ const auth = require('../middleware/auth.middleware')
 const router = Router();
 
 router.post('/login', (req, res) => {
-  console.log("LOGIN ROUTE")
   const { username, password } = req.body;
   if (!username || !password) return res.status(400).json({ message: 'Missing credentials' });
 
   const auth = authService.login(username, password);
-console.log({auth})
+  
+  if (!auth) return res.status(401).json({ message: 'Incorrect credentials' });
+
   res.cookie(COOKIE_NAME, auth.token, {
       httpOnly: true,
       secure: true,
