@@ -27,7 +27,7 @@ sql.createConfigsTable = `
 
 
 sql.createSnippetsTable = `
-  CREATE TABLE IF NOT EXISTS backups (
+  CREATE TABLE IF NOT EXISTS snippets (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     content TEXT NOT NULL,
     name TEXT NOT NULL UNIQUE
