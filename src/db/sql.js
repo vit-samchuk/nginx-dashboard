@@ -30,7 +30,7 @@ sql.createSnippetsTable = `
   CREATE TABLE IF NOT EXISTS backups (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     content TEXT NOT NULL,
-    name TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL UNIQUE
   );
 `;
 
