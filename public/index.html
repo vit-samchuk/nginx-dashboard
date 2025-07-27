@@ -50,23 +50,23 @@
       
       
       <!-- Show loading state -->
-      <div x-show="configs.loading" class="loading-message">
+      <div x-cloak x-show="configs.loading" class="loading-message">
         ⏳ Loading configurations...
       </div>
       
       <!-- Show error if config list failed to load -->
-      <div x-show="configs.err && !configs.loading" class="error-message">
+      <div x-cloak x-show="configs.err && !configs.loading" class="error-message">
         ❌ Failed to load configuration list
       </div>
       
       <!-- Show message if there are no configs and no error -->
-      <div x-show="!configs.err && !configs.loading && configs.list.length === 0" class="empty-message">
+      <div x-cloak x-show="!configs.err && !configs.loading && configs.list.length === 0" class="empty-message">
         🗂️ No configurations found
       </div>
       
       <!-- Show config list -->
       <template x-if="!configs.err && !configs.loading && configs.list.length > 0">
-        <div style="padding: 0 0 150px;">
+        <div style="padding: 0 0 15px;">
           <template x-for="config in configs.list.sort((a, b) => b.enabled - a.enabled)" :key="config.id">
             <div :class="configs.active.includes(config.id) ? 'config config-wrap' : 'config'">
               <div class="config-item" :class="config.enabled ? '' : 'disabled'" @click="configClick(config.id)">
@@ -95,23 +95,66 @@
         </div>
       </template>
     </section>
-    
+    <section>
+      <div class="header-row">
+        <h3>Snippets</h3>
+        <sl-button size="small" variant="primary" @click="snippets.add()">Add</sl-button>
+      </div>
+      
+      <div x-cloak x-show="snippets.loading" class="loading-message">
+        ⏳ Loading ...
+      </div>
+      
+      <div x-cloak x-show="snippets.err && !snippets.loading" class="error-message">
+        ❌ Failed to load snippets list
+      </div>
+      
+      <div x-cloak x-show="!snippets.err && !snippets.loading && snippets.list.length === 0" class="empty-message">
+        🗂️ No snippets yet...
+      </div>
+      
+      <!-- Show config list -->
+      <template x-if="!snippets.err && !snippets.loading && snippets.list.length > 0">
+        <div style="padding: 0 0 15px;">
+          <template x-for="snippet in snippets.list" :key="snippet.id">
+            <div class="config">
+              <div class="config-item" @click="snippets.click(snippet.id)">
+                <span x-text="snippet.name"></span>
+              </div>
+              <div x-show="snippets.active.includes(snippet.id)">
+                <pre x-text="snippet.content"></pre>
+                <div class="buttons">
+                  <sl-icon-button name="pencil" label="Edit" @click="snippets.edit(snippet)" style="font-size: 20px; color: green;"></sl-icon-button>
+                  <sl-icon-button name="trash-fill" label="Delete" @click="snippets.delete(config)" style="font-size: 20px; color: red;"></sl-icon-button>
+                </div>
+              </div>
+            </div>
+          </template>
+        </div>
+      </template>
+    </section>
     <!-- ### EDITOR ### -->
-    <div :class="editor.visible ? 'editor-wrap' : 'editor-wrap hidden'">
+    <div :class="editor.class">
       <div class="editor_header">
-        <p x-show="!!editor.cfg" class="title" x-text="editor.cfg?.path"></p>
-        <p x-show="!editor.cfg" class="title">
-          <sl-input :value="editor.name" @sl-input="editor.name = $event.target.value" placeholder="domain.com" size="small">
+        <p x-show="editor.mode === 'config' && !!editor.cfg" class="title" x-text="editor.cfg?.path"></p>
+        <p x-show="editor.mode === 'snippet' && !!editor.snippet" class="title" x-text="editor.snippet?.name"></p>
+        
+        <p x-show="editor.mode === 'config' && !editor.cfg" class="title">
+          <sl-input :value="editor.name" @sl-input="editor.name = $event.target.value" placeholder="domain.com" size="small" autocapitalize="off">
             <span class="prefix" slot="prefix">Config name:</span>
           </sl-input>
         </p>
-        <p class="error" x-show="editor.cfg?.validation_status === 'invalid'" x-text="editor.cfg?.validation_error"></p>
+        <p x-show="editor.mode === 'snippet' && !editor.snippet" class="title">
+          <sl-input :value="editor.name" @sl-input="editor.name = $event.target.value" placeholder="snippet name" size="small" autocapitalize="off">
+            <span class="prefix" slot="prefix">Snippet name:</span>
+          </sl-input>
+        </p>
+        <p class="error" x-show="editor.hasError" x-text="editor.error"></p>
       </div>
       <div class="editor" id="editor"></div>
       <div class="editor_footer">
         <div class="toolbar">
-          <sl-button size="small" pill variant="default" style="opacity: 0.8;" @click="insertTab(); $event.target.blur()" tabindex="-1">Tab</sl-button>
-          <sl-button size="small" pill variant="default" style="opacity: 0.8;" @click="format(); $event.target.blur()" tabindex="-1">F</sl-button>
+          <sl-button size="small" pill variant="default" style="opacity: 0.8;" @click="editor.insertTab(); $event.target.blur()" tabindex="-1">Tab</sl-button>
           <sl-button size="small" pill variant="default" style="opacity: 0.8;" @click="insertPair('{}'); $event.preventDefault()" tabindex="-1">{}</sl-button>
           <sl-button size="small" pill variant="default" style="opacity: 0.8;" @click="insertPair('[]'); $event.preventDefault()" tabindex="-1">[]</sl-button>
           <sl-button size="small" pill variant="default" style="opacity: 0.8;" @click="insertPair('&quot;&quot;'); $event.preventDefault()"
@@ -120,9 +163,9 @@
         </div>
         
         <div class="buttons">
-          <sl-button @click='saveConfig()' variant="primary">Save</sl-button>
-          <sl-button x-show="!editor.cfg" @click='saveAndEnableConfig()' variant="success">Save & Enable</sl-button>
-          <sl-button @click='closeEditor()' variant="danger">Close</sl-button>
+          <sl-button @click="editor.mode === 'config' ? saveConfig() : snippets.save()" variant="primary">Save</sl-button>
+          <sl-button x-show="editor.mode === 'config' && !editor.cfg" @click='saveAndEnableConfig()' variant="success">Save & Enable</sl-button>
+          <sl-button @click='editor.close()' variant="danger">Close</sl-button>
         </div>
         <div x-show="!!editor.cfg" :class="editor.cfg?.enabled ? 'status enabled' : 'status disabled'"
           x-text="editor.cfg?.enabled ? 'Config enabled' : 'Not enabled'"></div>
@@ -134,14 +177,14 @@
   <sl-dialog id="editorConfirmModal" label="Unsaved data">
     You have unsaved data. Do you want to close editor?
     <div slot="footer" style="display: flex; gap: 10px; justify-content: end">
-      <sl-button slot="footer" variant="primary" @click="closeEditor(true)">Close</sl-button>
-      <sl-button slot="footer" variant="danger" @click="closeConfirmModal()">Cancel</sl-button>
+      <sl-button slot="footer" variant="primary" @click="editor.close(true)">Close</sl-button>
+      <sl-button slot="footer" variant="danger" @click="editor.confirmModal.hide()">Cancel</sl-button>
     </div>
   </sl-dialog>
   
   <!-- Login Modal -->
   <sl-dialog id="loginModal" label="Login">
-    <sl-input placeholder="Username" x-model="login.username"></sl-input>
+    <sl-input placeholder="Username" x-model="login.username" autocapitalize="off"></sl-input>
     <sl-input type="password" placeholder="Password" x-model="login.password" password-toggle></sl-input>
     <div>
       <sl-button variant="primary" @click="doLogin()">Login</sl-button>
@@ -157,70 +200,20 @@
     </div>
   </sl-dialog>
   
+  <!-- Snippets  -->
+  <script src="./scripts/snippets.js"></script>
+  <!-- Utils  -->
+  <script src="./scripts/utils.js"></script>
+  
   <!-- Alpine app logic -->
   <script>
     if ('virtualKeyboard' in navigator) navigator.virtualKeyboard.overlaysContent = true;
     const URL = "https://nginx-dashboard.do-code.com";
     
-    const _fetch = async (path, options = {}) => {
-      console.log(path, options)
-      //if (path !== '/configs/list') return 'ok';
-      try {
-        const res = await fetch(`${URL}${path}`, options);
-        
-        if (res.status === 401 && !path.startsWith('/auth/')) {
-          errorToast('Permission denied! Guests are not allowed to do this action.')
-          logoutUser();
-        }
-        
-        if (!res.ok) {
-          const text = await res.text().catch(() => '');
-          throw new Error(`Error ${res.status}: ${text || res.statusText}`);
-        }
-        
-        return res.json();
-      } catch (err) {
-        console.error('Request error:', err);
-        throw err;
-      }
-    };
-    
-    const _post = (path, data) =>
-      _fetch(path, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(data)
-      });
-    
-    const _delete = (path) => _fetch(path, { method: 'DELETE' });
-    const toast = (message, variant = 'primary') => {
-      const alert = Object.assign(document.createElement('sl-alert'), {
-        variant,
-        closable: true,
-        duration: 4000,
-        innerHTML: `<sl-icon slot="icon" name="info-circle"></sl-icon>${message}`,
-      })
-      
-      document.body.appendChild(alert)
-      alert.toast().then(() => { setTimeout(() => alert.remove(), 5000) })
-    }
-    const errorToast = (err) => {
-      let message = 'Error! Something went wrong...';
-      
-      if (typeof err === 'string') {
-        message = err;
-      } else if (err && typeof err === 'object' && typeof err.message === 'string') {
-        message = err.message;
-      }
-      
-      return toast(message, 'danger');
-    }
     const api = {
       login: (u, p) => _post('/auth/login', { username: u, password: p }),
       logout: () => _post('/auth/logout'),
-      getCurrentUser: () => _fetch('/auth/me'),
+      getMe: () => _fetch('/auth/me'),
       configs: {
         list: () => _fetch('/configs/list'),
         getById: (id) => _fetch(`/configs/id/${id}`),
@@ -238,7 +231,8 @@
         update: (id, name, content) => _post(`/snippets/update/${id}`, { name, content }),
         delete: (id) => _delete(`/snippets/${id}`)
       },
-      reloadNginx: () => _post('/configs/nginx-reload')
+      reloadNginx: () => _post('/configs/nginx-reload'),
+      
     };
     
     const logoutUser = async () => {
@@ -247,33 +241,8 @@
       dashboardApp.guest = true;
     }
     
-    const formatNginxConfig = (config) => {
-      const lines = config.split('\n');
-      let indentLevel = 0;
-      const indentSize = 4;
-      
-      const formatted = lines.map(line => {
-        const trimmed = line.trim();
-        
-        if (trimmed === '') return '';
-        
-        // Уменьшаем отступ до строки, если она закрывает блок
-        if (trimmed.startsWith('}')) indentLevel--;
-        
-        const indent = ' '.repeat(indentSize * indentLevel);
-        const result = indent + trimmed;
-        
-        // Увеличиваем отступ после строки, если она открывает блок
-        if (trimmed.endsWith('{')) indentLevel++;
-        
-        return result;
-      });
-      
-      return formatted.join('\n');
-    }
-    
-    
     const dashboardApp = () => ({
+      ...snippetsModule,
       guest: true,
       configs: {
         loading: true,
@@ -281,22 +250,96 @@
         err: false,
         active: [],
       },
-      snippets: {
-        list: []
-      },
       editor: {
         item: null,
+        mode: 'config', // snippet
         cfg: null,
+        snippet: null,
         name: '',
         visible: false,
+        confirmModal: null,
+        get class() {
+          return this.visible ? 'editor-wrap' : 'editor-wrap hidden'
+        },
+        get hasError() {
+          return this.mode === 'config' && this.cfg?.validation_status === 'invalid'
+        },
+        get error() {
+          return editor.cfg?.validation_error || ''
+        },
+        show() {
+          this.item.session.getUndoManager().markClean();
+          history.pushState({ editorOpen: true }, '');
+          this.visible = true;
+        },
+        hide() {
+          this.visible = false;
+          this.cfg = null;
+          this.snippet = null;
+          this.item.setValue('', 1);
+          this.mode = 'config';
+          this.name = '';
+          if (history.state?.editorOpen) history.back();
+        },
+        close(force = false) {
+          if (force) {
+            this.confirmModal.hide()
+            this.hide();
+            return
+          }
+          const changed = !this.item.session.getUndoManager().isClean();
+          if (!changed) return this.hide();
+          if (!history.state?.editorOpen) history.pushState({ editorOpen: true }, '');
+          this.confirmModal.show()
+        },
+        insertTab() {
+          this.item.insert('\t')
+          this.item.focus()
+        },
+        insertPair(pair) {
+          const [open, close] = pair.split('');
+          this.item.insert(open + close);
+          this.item.navigateLeft(1);
+          this.item.focus()
+        },
+        toggleComment() {
+          const editor = this.item;
+          const session = editor.getSession();
+          const selection = editor.getSelectionRange();
+          const lines = [];
+          
+          for (let row = selection.start.row; row <= selection.end.row; row++) {
+            lines.push(session.getLine(row));
+          }
+          
+          const allCommented = lines.every(line => line.trim().startsWith('#'));
+          
+          for (let row = selection.start.row; row <= selection.end.row; row++) {
+            const line = session.getLine(row);
+            if (allCommented) {
+              const uncommented = line.replace(/^(\s*)#\s?/, '$1');
+              session.replace({
+                start: { row, column: 0 },
+                end: { row, column: line.length }
+              }, uncommented);
+            } else {
+              session.replace({
+                start: { row, column: 0 },
+                end: { row, column: 0 }
+              }, '# ');
+            }
+          }
+          this.item.focus()
+        }
       },
-      currentId: null,
       login: { username: '', password: '' },
       loginModal: null,
       logoutModal: null,
-      editorConfirmModal: null,
+      
       
       async init() {
+        Alpine.store('app', this);
+        
         this.editor.item = ace.edit("editor");
         this.editor.item.setTheme("ace/theme/monokai");
         this.editor.item.session.setMode("ace/mode/nginx");
@@ -309,7 +352,7 @@
           enableSnippets: true
         });
         try {
-          await api.getCurrentUser();
+          await api.getMe();
           this.guest = false;
         } catch (err) {
           this.guest = true;
@@ -318,15 +361,16 @@
         
         await Promise.all([
           this.loadConfigs(),
-          this.loadSnippets()
+          this.snippets.load()
         ]);
         
         this.loginModal = document.getElementById("loginModal");
         this.logoutModal = document.getElementById("logoutModal");
-        this.editorConfirmModal = document.getElementById("editorConfirmModal");
+        this.editor.confirmModal = document.getElementById("editorConfirmModal");
+        
         window.addEventListener('popstate', (event) => {
           if (event.state?.editorOpen || this.editor.visible) {
-            this.closeEditor();
+            this.editor.close();
           }
         });
       },
@@ -367,38 +411,13 @@
       editConfig(cfg) {
         this.editor.cfg = cfg;
         this.editor.item.setValue(cfg.content, 1);
-        this.showEditor();
-      },
-      showEditor() {
-        this.editor.item.session.getUndoManager().markClean();
-        history.pushState({ editorOpen: true }, '');
-        this.editor.visible = true;
-      },
-      closeEditor(force = false) {
-        if (force) {
-          this.closeConfirmModal();
-          this.hideEditor();
-          return
-        }
-        const changed = !this.editor.item.session.getUndoManager().isClean();
-        if (!changed) return this.hideEditor();
-        if (!history.state?.editorOpen) history.pushState({ editorOpen: true }, '');
-        this.editorConfirmModal.show()
-      },
-      closeConfirmModal() {
-        this.editorConfirmModal.hide()
-      },
-      hideEditor() {
-        this.editor.visible = false;
-        this.editor.cfg = null;
-        this.editor.item.setValue('', 1);
-        this.editor.name = '';
-        if (history.state?.editorOpen) history.back();
+        this.editor.show();
       },
       newConfig() {
-        this.showEditor();
+        this.editor.mode = 'config'
+        this.editor.show();
       },
-      async saveConfig(enable = false) {
+      async saveConfig() {
         const content = this.editor.item.getValue()
         
         if (!this.editor.cfg && !this.editor.name.length) {
@@ -423,7 +442,7 @@
             ...this.configs.list.filter(cfg => cfg.id !== res.config.id),
             res.config
           ];
-          this.hideEditor()
+          this.editor.hide()
           this.editConfig(res.config)
           // this.editor.cfg = res.config;
         } catch (err) {
@@ -442,7 +461,7 @@
           } else {
             toast('Config created and enabled!', 'success')
           }
-          this.hideEditor();
+          this.editor.hide();
           this.editConfig(res.config)
         } catch (err) {
           toast(err);
@@ -502,57 +521,6 @@
           errorToast(err)
         }
       },
-      format() {
-        const raw = this.editor.item.getValue();
-        const formatted = formatNginxConfig(raw);
-        this.editor.item.setValue(formatted, 1)
-        this.editor.item.focus()
-      },
-      insertTab() {
-        this.editor.item.insert('\t')
-        this.editor.item.focus()
-      },
-      insertPair(pair) {
-        const [open, close] = pair.split('');
-        this.editor.item.insert(open + close);
-        this.editor.item.navigateLeft(1);
-        this.editor.item.focus()
-      },
-      toggleComment() {
-        const editor = this.editor.item;
-        const session = editor.getSession();
-        const selection = editor.getSelectionRange();
-        const lines = [];
-        
-        // Получаем строки
-        for (let row = selection.start.row; row <= selection.end.row; row++) {
-          lines.push(session.getLine(row));
-        }
-        
-        // Проверяем, все ли строки уже закомментированы
-        const allCommented = lines.every(line => line.trim().startsWith('#'));
-        
-        for (let row = selection.start.row; row <= selection.end.row; row++) {
-          const line = session.getLine(row);
-          if (allCommented) {
-            // Убираем # (расскомментируем)
-            const uncommented = line.replace(/^(\s*)#\s?/, '$1');
-            session.replace({
-              start: { row, column: 0 },
-              end: { row, column: line.length }
-            }, uncommented);
-          } else {
-            // Добавляем # (комментируем)
-            session.replace({
-              start: { row, column: 0 },
-              end: { row, column: 0 }
-            }, '# ');
-          }
-        }
-        this.editor.item.focus()
-      }
-      
-      
     });
   </script>
 </body>
