@@ -148,6 +148,15 @@
     </div>
   </sl-dialog>
   
+  <!-- Logout Modal -->
+  <sl-dialog id="logoutModal" label="Logout">
+    <p>Are you sure you want to logout?</p>
+    <div slot="footer" style="display: flex; gap: 10px; justify-content: end">
+      <sl-button slot="footer" variant="primary" @click="logoutUser()">Yes</sl-button>
+      <sl-button slot="footer" variant="danger" @click="logoutMofal?.hide()">No</sl-button>
+    </div>
+  </sl-dialog>
+  
   <!-- Alpine app logic -->
   <script>
     if ('virtualKeyboard' in navigator) navigator.virtualKeyboard.overlaysContent = true;
@@ -272,6 +281,7 @@
       currentId: null,
       login: { username: '', password: '' },
       loginModal: null,
+      logoutModal: null,
       editorConfirmModal: null,
       
       async init() {
@@ -297,6 +307,7 @@
         
         await this.loadConfigs();
         this.loginModal = document.getElementById("loginModal");
+        this.logoutModal = document.getElementById("logoutModal");
         this.editorConfirmModal = document.getElementById("editorConfirmModal");
         window.addEventListener('popstate', (event) => {
           if (event.state?.editorOpen || this.editor.visible) {
@@ -443,10 +454,15 @@
       
       showLogin() { this.loginModal.show() },
       
-      async showLogout() {
-        // todo: actually show logout modal
-        await api.logout()
+      showLogout() { this.logoutModal.show() },
+      
+      async logout() {
+        try {
+          await api.logout()
         this.guest = true;
+        } catch (err) {
+          errorToast(err)
+        }
       },
       
       async doLogin() {

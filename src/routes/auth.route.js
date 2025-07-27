@@ -10,7 +10,7 @@ router.post('/login', (req, res) => {
   if (!username || !password) return res.status(400).json({ message: 'Missing credentials' });
 
   const { token, user } = authService.login(username, password);
-  
+console.log({token, user})
   res.cookie(COOKIE_NAME, token, {
       httpOnly: true,
       secure: true,

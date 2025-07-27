@@ -8,6 +8,10 @@ const login = (username, password) => {
 
   const valid = bcrypt.compareSync(password, user.password);
   if (!valid) return null;
+  console.log({
+    user,
+    valid
+  })
 
   const token = jwt.sign(user.id, user.username);
 console.log(token)
