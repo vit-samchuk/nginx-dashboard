@@ -73,6 +73,13 @@ main {
     padding: 3px;
   }
   
+  pre {
+    max-width: 100%;
+    overflow: scroll;
+    padding: 10px;
+    font-size: 13px;
+  }
+  
   .path {}
   
   .time {
@@ -189,15 +196,6 @@ main {
       padding: 3px;
     }
     
-    .toolbar sl-button {
-      user-select: none;
-      pointer-events: auto;
-    }
-    
-    .toolbar sl-button:focus {
-      outline: none;
-    }
-    
   }
   
   & .editor {
@@ -211,4 +209,42 @@ main {
     display: inline-block;
     padding: 0 3px 0 10px;
   }
+}
+
+.snippets_panel {
+  height: 35vh;
+  width: 100%;
+  overflow-y: scroll;
+  
+  transition: height 0.3s ease;
+  
+    .snippets_container {
+      background: #383838;
+    
+    .snippet {
+      max-width: 100%;
+      border: 2px solid #686868;
+      border-radius: 3px;
+      padding: 5px;
+      margin: 3px 5px 10px 5px;
+      background: #212121;
+      .snippet_name {
+        padding: 3px 5px 3px 15px;
+      }
+      
+      .snippet_content {
+        font-size: 12px;
+        background: black;
+        margin: 5px;
+        padding: 10px;
+        max-height: 150px;
+        overflow: scroll;
+      }
+    }
+  }
+}
+
+.snippets_panel.hidden {
+  height: 0px;
+  overflow: hidden;
 }

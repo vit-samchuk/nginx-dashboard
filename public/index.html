@@ -121,7 +121,7 @@
               <div class="config-item" @click="snippets.click(snippet.id)">
                 <span x-text="snippet.name"></span>
               </div>
-              <div x-show="snippets.active.includes(snippet.id)">
+              <div x-show="snippets.active.includes(snippet.id)" style="background: black;">
                 <pre x-text="snippet.content"></pre>
                 <div class="buttons">
                   <sl-icon-button name="pencil" label="Edit" @click="snippets.edit(snippet)" style="font-size: 20px; color: green;"></sl-icon-button>
@@ -134,11 +134,13 @@
       </template>
     </section>
     <!-- ### EDITOR ### -->
-    <div :class="editor.class">
+    <div x-cloak class="editor-wrap" :class="editor.class">
       <div class="editor_header">
         <p x-show="editor.mode === 'config' && !!editor.cfg" class="title" x-text="editor.cfg?.path"></p>
-        <p x-show="editor.mode === 'snippet' && !!editor.snippet" class="title" x-text="editor.snippet?.name"></p>
-        
+        <p x-show="editor.mode === 'snippet' && !!editor.snippet" class="title">
+          <sl-input :value="editor.name" @sl-input="editor.name = $event.target.value" placeholder="snippet name" size="small" autocapitalize="off">
+          </sl-input>
+        </p>
         <p x-show="editor.mode === 'config' && !editor.cfg" class="title">
           <sl-input :value="editor.name" @sl-input="editor.name = $event.target.value" placeholder="domain.com" size="small" autocapitalize="off">
             <span class="prefix" slot="prefix">Config name:</span>
@@ -154,20 +156,36 @@
       <div class="editor" id="editor"></div>
       <div class="editor_footer">
         <div class="toolbar">
-          <sl-button size="small" pill variant="default" style="opacity: 0.8;" @click="editor.insertTab(); $event.target.blur()" tabindex="-1">Tab</sl-button>
-          <sl-button size="small" pill variant="default" style="opacity: 0.8;" @click="insertPair('{}'); $event.preventDefault()" tabindex="-1">{}</sl-button>
-          <sl-button size="small" pill variant="default" style="opacity: 0.8;" @click="insertPair('[]'); $event.preventDefault()" tabindex="-1">[]</sl-button>
-          <sl-button size="small" pill variant="default" style="opacity: 0.8;" @click="insertPair('&quot;&quot;'); $event.preventDefault()"
-            tabindex="-1">""</sl-button>
-          <sl-button size="small" pill variant="default" style="opacity: 0.8;" @click="toggleComment(); $event.preventDefault()" tabindex="-1">#</sl-button>
+          <div>
+            <sl-icon-button name="arrow-90deg-left" label="undo" @click="editor.undo()"></sl-icon-button>
+            <sl-icon-button name="arrow-90deg-right" label="redo" @click="editor.redo()"></sl-icon-button>
+          </div>
+          <sl-button size="small" style="opacity: 0.8;" @click="editor.insertTab(); $event.preventDefault()" tabindex="-1">Tab</sl-button>
+          <sl-button size="small" variant="default" style="opacity: 0.8;" @click="editor.insertPair('{}'); $event.preventDefault()" tabindex="-1">{
+            }</sl-button>
+          <sl-button size="small" variant="default" style="opacity: 0.8;" @click="editor.insertPair('[]'); $event.preventDefault()" tabindex="-1">[
+            ]</sl-button>
+          <sl-button size="small" variant="default" style="opacity: 0.8;" @click="editor.insertPair('&quot;&quot;'); $event.preventDefault()" tabindex="-1">"
+            "</sl-button>
+          <sl-button size="small" variant="default" style="opacity: 0.8;" @click="editor.toggleComment(); $event.preventDefault()" tabindex="-1">#</sl-button>
+          <sl-icon-button name="feather" label="snippets" @click="editor.snippets()"></sl-icon-button>
         </div>
-        
-        <div class="buttons">
+        <div class="snippets_panel" :class="editor.snippets_class">
+          <div class="snippets_container">
+            <template x-for="snippet in snippets.list" :key="snippet.id">
+              <div class="snippet" @click="editor.insertSnippet(snippet)">
+                <p class="snippet_name" x-text="snippet.name"></p>
+                <pre class="snippet_content" x-text="snippet.content"></pre>
+              </div>
+            </template>
+          </div>
+        </div>
+        <div class="buttons" x-show="!editor.snippets_visible">
           <sl-button @click="editor.mode === 'config' ? saveConfig() : snippets.save()" variant="primary">Save</sl-button>
           <sl-button x-show="editor.mode === 'config' && !editor.cfg" @click='saveAndEnableConfig()' variant="success">Save & Enable</sl-button>
           <sl-button @click='editor.close()' variant="danger">Close</sl-button>
         </div>
-        <div x-show="!!editor.cfg" :class="editor.cfg?.enabled ? 'status enabled' : 'status disabled'"
+        <div x-show="editor.mode === 'config' && !!editor.cfg && !editor.snippets_visible" :class="editor.cfg?.enabled ? 'status enabled' : 'status disabled'"
           x-text="editor.cfg?.enabled ? 'Config enabled' : 'Not enabled'"></div>
       </div>
     </div>
@@ -177,8 +195,8 @@
   <sl-dialog id="editorConfirmModal" label="Unsaved data">
     You have unsaved data. Do you want to close editor?
     <div slot="footer" style="display: flex; gap: 10px; justify-content: end">
-      <sl-button slot="footer" variant="primary" @click="editor.close(true)">Close</sl-button>
-      <sl-button slot="footer" variant="danger" @click="editor.confirmModal.hide()">Cancel</sl-button>
+      <sl-button slot="footer" variant="danger" @click="editor.close(true)">Close</sl-button>
+      <sl-button slot="footer" @click="editor.confirmModal.hide()">Cancel</sl-button>
     </div>
   </sl-dialog>
   
@@ -258,14 +276,18 @@
         name: '',
         visible: false,
         confirmModal: null,
+        snippets_visible: false,
         get class() {
-          return this.visible ? 'editor-wrap' : 'editor-wrap hidden'
+          return this.visible ? '' : 'hidden';
         },
         get hasError() {
-          return this.mode === 'config' && this.cfg?.validation_status === 'invalid'
+          return this.mode === 'config' && this.cfg?.validation_status === 'invalid';
         },
         get error() {
-          return editor.cfg?.validation_error || ''
+          return editor.cfg?.validation_error || '';
+        },
+        get snippets_class() {
+          return this.snippets_visible ? '' : 'hidden';
         },
         show() {
           this.item.session.getUndoManager().markClean();
@@ -279,6 +301,7 @@
           this.item.setValue('', 1);
           this.mode = 'config';
           this.name = '';
+          this.snippets_visible = false;
           if (history.state?.editorOpen) history.back();
         },
         close(force = false) {
@@ -292,6 +315,17 @@
           if (!history.state?.editorOpen) history.pushState({ editorOpen: true }, '');
           this.confirmModal.show()
         },
+        undo() {
+          this.item.undo()
+          this.item.focus()
+        },
+        redo() {
+          this.item.redo()
+          this.item.focus()
+        },
+        snippets() {
+          this.snippets_visible = !this.snippets_visible;
+        },
         insertTab() {
           this.item.insert('\t')
           this.item.focus()
@@ -300,6 +334,11 @@
           const [open, close] = pair.split('');
           this.item.insert(open + close);
           this.item.navigateLeft(1);
+          this.item.focus()
+        },
+        insertSnippet(snippet) {
+          this.item.insert(snippet.content);
+          this.snippets_visible = false;
           this.item.focus()
         },
         toggleComment() {
