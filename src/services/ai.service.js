@@ -1,4 +1,4 @@
-const fetch = require('node-fetch');
+//const fetch = require('node-fetch');
 
 const TOGETHER_API_KEY = process.env.TOGETHER_API_KEY;
 const TOGETHER_API_URL = 'https://api.together.xyz/v1/chat/completions';
