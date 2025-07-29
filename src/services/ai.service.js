@@ -56,6 +56,7 @@ async function askOpenRouter(prompt) {
   }
   
   const result = await response.json();
+  console.log(result)
   return result.choices?.[0]?.message?.content || 'Empty response';
 }
 
