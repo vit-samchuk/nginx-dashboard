@@ -5,7 +5,7 @@ const handler = require('../utils/async-handler');
 
 const router = Router();
 
-router.post('/ai/write', handler(async (req, res) => {
+router.post('/write', handler(async (req, res) => {
   const { prompt } = req.body;
 
   if (!prompt) {
@@ -18,7 +18,7 @@ router.post('/ai/write', handler(async (req, res) => {
   res.json({ result });
 }));
 
-router.post('/ai/format', handler(async (req, res) => {
+router.post('/format', handler(async (req, res) => {
   const { config } = req.body;
 
   if (!config) {
@@ -31,7 +31,7 @@ router.post('/ai/format', handler(async (req, res) => {
   res.json({ result });
 }));
 
-router.post('/ai/edit', handler(async (req, res) => {
+router.post('/edit', handler(async (req, res) => {
   const { config, prompt } = req.body;
 
   if (!config || !prompt) {
