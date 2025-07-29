@@ -1,6 +1,6 @@
 const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY;
 const OPENROUTER_API_URL = 'https://openrouter.ai/api/v1/chat/completions';
-const MODEL = 'qwen/qwen3-coder';
+const MODEL = 'qwen/qwen3-coder:free';
 const SYSTEM_MESSAGE = {
   role: 'system',
   content: `
