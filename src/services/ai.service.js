@@ -28,6 +28,25 @@ async function askOpenRouter(prompt) {
         { role: 'user', content: prompt }
       ],
       temperature: 0.3,
+      response_format: {
+        type: 'json_schema',
+        json_schema: {
+          name: 'nginx_config',
+          strict: true,
+          schema: {
+            type: 'object',
+            properties: {
+              config: {
+                type: "string",
+                description: "The nginx config as plain text"
+              }
+            },
+            required: ['config'],
+            additionalProperties: false
+          }
+        }
+      }
+      
     }),
   });
   
