@@ -5,8 +5,7 @@ const handler = require('../utils/async-handler');
 
 const router = Router();
 
-// Написание нового конфига по описанию
-router.post('/ai/write', auth, handler(async (req, res) => {
+router.post('/ai/write', handler(async (req, res) => {
   const { prompt } = req.body;
 
   if (!prompt) {
@@ -19,8 +18,7 @@ router.post('/ai/write', auth, handler(async (req, res) => {
   res.json({ result });
 }));
 
-// Форматирование существующего конфига
-router.post('/ai/format', auth, handler(async (req, res) => {
+router.post('/ai/format', handler(async (req, res) => {
   const { config } = req.body;
 
   if (!config) {
@@ -33,8 +31,7 @@ router.post('/ai/format', auth, handler(async (req, res) => {
   res.json({ result });
 }));
 
-// Редактирование конфига по запросу
-router.post('/ai/edit', auth, handler(async (req, res) => {
+router.post('/ai/edit', handler(async (req, res) => {
   const { config, prompt } = req.body;
 
   if (!config || !prompt) {

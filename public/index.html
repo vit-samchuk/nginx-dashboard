@@ -169,6 +169,15 @@
             "</sl-button>
           <sl-button size="small" variant="default" style="opacity: 0.8;" @click="editor.toggleComment(); $event.preventDefault()" tabindex="-1">#</sl-button>
           <sl-icon-button name="feather" label="snippets" @click="editor.snippets()"></sl-icon-button>
+          <sl-dropdown placement="top-start">
+            <sl-icon-button slot="trigger" name="magic" label="ai"></sl-icon-button>
+            <sl-menu>
+              <sl-menu-item @click="ai.write()">Write</sl-menu-item>
+              <sl-menu-item>Format</sl-menu-item>
+              <sl-menu-item>Edit</sl-menu-item>
+            </sl-menu>
+          </sl-dropdown>
+          
         </div>
         <div class="snippets_panel" :class="editor.snippets_class">
           <div class="snippets_container">
@@ -220,6 +229,8 @@
   
   <!-- Snippets  -->
   <script src="./scripts/snippets.js"></script>
+  <!-- AI  -->
+  <script src="./scripts/ai.js"></script>
   <!-- Utils  -->
   <script src="./scripts/utils.js"></script>
   
@@ -249,8 +260,12 @@
         update: (id, name, content) => _post(`/snippets/update/${id}`, { name, content }),
         delete: (id) => _delete(`/snippets/${id}`)
       },
+      ai: {
+        write: (prompt) => _post('/ai/write', { prompt }),
+        format: (config) => _post('/ai/format', { config }),
+        edit: (config, prompt) => _post('/ai/edit', { config, prompt }),
+      },
       reloadNginx: () => _post('/configs/nginx-reload'),
-      
     };
     
     const logoutUser = async () => {
@@ -261,6 +276,7 @@
     
     const dashboardApp = () => ({
       ...snippetsModule,
+      ...aiModule,
       guest: true,
       configs: {
         loading: true,
