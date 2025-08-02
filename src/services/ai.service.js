@@ -15,7 +15,7 @@ const SYSTEM_MESSAGE = {
 };
 
 async function askOpenRouter(prompt) {
-  const response = await fetch(OPENROUTER_API_URL, {
+  const fetchPromise = fetch(OPENROUTER_API_URL, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${OPENROUTER_API_KEY}`,
@@ -49,15 +49,20 @@ async function askOpenRouter(prompt) {
       
     }),
   });
+  try {
+    const res = await fetchPromise;
+    if (!res.ok) {
+      console.error('HTTP error:', res)
+      const errorText = await res.text();
+      throw new Error(`AI request failed: ${res.status} ${errorText}`);
+    }
+    const rezult = await res.json();
   
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`AI request failed: ${response.status} ${errorText}`);
+    return result.choices?.[0]?.message?.content || 'Empty response';
+  } catch (err) {
+    throw err;
+    console.error('AI error:', err);
   }
-  
-  const result = await response.json();
-  console.log(result)
-  return result.choices?.[0]?.message?.content || 'Empty response';
 }
 
 async function writeConfig(prompt) {
