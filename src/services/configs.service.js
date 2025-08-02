@@ -29,6 +29,17 @@ const getConfigById = (id) => {
   }
   return config;
 }
+
+const getConfigByPath = (path) => {
+  const config = db.select().from(configs).where(eq(configs.path, path)).get()
+  if (!config) {
+    const err = new Error('Config not found');
+    err.status = 404;
+    throw err;
+  }
+  return config;
+}
+
 const test = async () => {
   const test = await nginx.test()
   
@@ -178,7 +189,7 @@ const createConfig = async (name, content) => {
     last_modified: new Date()
   }).run();
   
-  return { config: getConfigById(res.lastInsertRowid) };
+  return { config: getConfigByPath(configPath) };
 }
 
 const updateConfigContent = async (id, content) => {

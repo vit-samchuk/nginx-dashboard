@@ -12,9 +12,10 @@ const aiModule = {
       this.loading = true;
       try {
         const res = await api.ai.write(prompt);
-        console.log(res.result || res)
-        if (res.result?.config) {
-          this.app.editor.item.setValue(res.result.config, 1)
+        const result = JSON.parse(res.result)
+        if (result.config) {
+          console.log(result.config)
+          this.app.editor.item.setValue(result.config, 1)
         }
       } catch (err) {
         console.log(err)
