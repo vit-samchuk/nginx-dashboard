@@ -3,12 +3,13 @@ const aiModule = {
     get app() {
       return Alpine.store('app');
     },
-    loading: true,
+    loading: false,
     err: null,
     list: [],
     active: [],
     async write() {
       const prompt = "Write basic nginx config for vue app. App directory is www/app. domain do-code.com"
+      this.loading = true;
       try {
         const res = await api.ai.write(prompt);
         console.log(res.result || res)
@@ -17,6 +18,8 @@ const aiModule = {
         }
       } catch (err) {
         console.log(err)
+      } finally {
+        this.loading = false;
       }
     },
   }

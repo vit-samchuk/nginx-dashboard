@@ -227,6 +227,15 @@
     </div>
   </sl-dialog>
   
+  <div
+    x-cloak
+    x-show="ai.loading"
+    class="loader-overlay"
+    style="backdrop-filter: blur(4px);"
+  >
+    <sl-spinner style="font-size: 3rem;"></sl-spinner>
+  </div>
+  
   <!-- Snippets  -->
   <script src="./scripts/snippets.js"></script>
   <!-- AI  -->
