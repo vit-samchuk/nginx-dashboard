@@ -173,8 +173,8 @@
             <sl-icon-button slot="trigger" name="magic" label="ai"></sl-icon-button>
             <sl-menu>
               <sl-menu-item @click="ai.write()">Write</sl-menu-item>
-              <sl-menu-item>Format</sl-menu-item>
-              <sl-menu-item>Edit</sl-menu-item>
+              <sl-menu-item @click="ai.format()">Format</sl-menu-item>
+              <sl-menu-item @click="ai.edit()">Edit</sl-menu-item>
             </sl-menu>
           </sl-dropdown>
           
@@ -227,12 +227,18 @@
     </div>
   </sl-dialog>
   
-  <div
-    x-cloak
-    x-show="ai.loading"
-    class="loader-overlay"
-    style="backdrop-filter: blur(4px);"
-  >
+  <!-- AI Modal -->
+  <sl-dialog id="aiModal" class="ai_modal" label="Ask AI">
+    <p class="ai_text">Describe your problem</p>
+    <sl-textarea id="aiTextarea" placeholder="Your message..." rows="4"></sl-textarea>
+    
+    <div style="display: flex; justify-content: flex-end; margin-top: 1rem; gap: 0.5rem;">
+      <sl-button variant="default" @click="ai.cancel()">Cancel</sl-button>
+      <sl-button variant="primary" @click="ai.send()">Send</sl-button>
+    </div>
+  </sl-dialog>
+  
+  <div x-cloak x-show="ai.loading" class="loader-overlay" style="backdrop-filter: blur(4px);">
     <sl-spinner style="font-size: 3rem;"></sl-spinner>
   </div>
   
@@ -400,7 +406,6 @@
       loginModal: null,
       logoutModal: null,
       
-      
       async init() {
         Alpine.store('app', this);
         
@@ -422,7 +427,6 @@
           this.guest = true;
         }
         
-        
         await Promise.all([
           this.loadConfigs(),
           this.snippets.load()
@@ -432,8 +436,11 @@
         this.logoutModal = document.getElementById("logoutModal");
         this.editor.confirmModal = document.getElementById("editorConfirmModal");
         
+        this.ai.init()
+        
         window.addEventListener('popstate', (event) => {
           if (event.state?.editorOpen || this.editor.visible) {
+            this.ai.modal.hide();
             this.editor.close();
           }
         });

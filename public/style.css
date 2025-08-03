@@ -259,3 +259,10 @@ main {
   justify-content: center;
   backdrop-filter: blur(4px);
 }
+
+.ai_modal {
+  
+  .ai_text {
+    margin-bottom: 10px;
+  }
+}

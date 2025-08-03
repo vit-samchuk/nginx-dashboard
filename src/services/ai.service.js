@@ -57,7 +57,7 @@ async function askOpenRouter(prompt) {
       throw new Error(`AI request failed: ${res.status} ${errorText}`);
     }
     const result = await res.json();
-  
+    
     return result.choices?.[0]?.message?.content || 'Empty response';
   } catch (err) {
     throw err;
@@ -66,18 +66,29 @@ async function askOpenRouter(prompt) {
 }
 
 async function writeConfig(prompt) {
-  const instruction = `Напиши новый nginx конфиг по следующему описанию:\n\n${prompt}`;
+  let instruction = "";
+  instruction += "Write a new Nginx configuration file based on the following description.";
+  instruction += `\n\n${prompt}`;
   return await askOpenRouter(instruction);
 }
 
 async function formatConfig(configText) {
-  const instruction = `Отформатируй этот nginx конфиг. Если есть ошибки — прокомментируй их в тексте (# comment):\n\n${configText}`;
+  let instruction = "";
+  instruction += "Format the following Nginx configuration file using 2 spaces per indentation level (no tabs).";
+  instruction += "\nIf you find any mistakes or potential issues, comment them inline using '# comment:'.";
+  instruction += "\nDo not change the structure or logic of the config — only format and annotate.";
+  instruction += `\nHere is the config: \n\n ${configText}`;
+  
   return await askOpenRouter(instruction);
 }
 
 async function editConfig(configText, editPrompt) {
-  const instruction =
-    `Отредактируй следующий nginx конфиг согласно описанию:\n"${editPrompt}"\n\nВот конфиг:\n${configText}\n\nЕсли есть ошибки — укажи их в комментариях внутри конфига.`;
+  let instruction = "";
+  instruction += "Edit the following Nginx configuration according to the instructions below.";
+  instruction += `\n"${editPrompt}"`;
+  instruction += "\n\nHere is the config:\n";
+  instruction += `${configText}`;
+  instruction += "\n\nIf you find any mistakes or potential issues, comment them inline using '# comment:'.";
   return await askOpenRouter(instruction);
 }
 

@@ -26,7 +26,7 @@ module.exports = (err, req, res, next) => {
   
   if (err.name === 'SqliteError') {
     console.log(err.toString())
-    console.log(err.toLocaleString)
+    console.log(err.toLocaleString())
     if (err.code === 'SQLITE_CONSTRAINT_UNIQUE') {
       response.status = 409;
       response.message = `Conflict! ${err.message}`;

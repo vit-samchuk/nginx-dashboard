@@ -1,6 +1,6 @@
 const _fetch = async (path, options = {}) => {
   try {
-     options.credentials = 'include';
+    // options.credentials = 'include';
     const res = await fetch(`${URL}${path}`, options);
     
     if (res.status === 401 && !path.startsWith('/auth/')) {
