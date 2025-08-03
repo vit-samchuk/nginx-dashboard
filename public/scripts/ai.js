@@ -95,7 +95,7 @@ const aiModule = {
     },
     handleResult(res) {
       if (res.config) {
-          this.app.editor.item.setValue(result.config, 1)
+          this.app.editor.item.setValue(res.config, 1)
         } else {
           errorToast("Something went wrong. Try again later...")
         }
