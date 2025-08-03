@@ -41,7 +41,7 @@ router.post('/create-and-enable', auth, handler(async (req, res) => {
     throw err;
   }
   
-  const config = await configsService.createConfig(name, content)
+  const { config } = await configsService.createConfig(name, content)
   const result = await configsService.enableConfig(config.id)
   
   res.json(result)
