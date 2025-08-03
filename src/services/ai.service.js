@@ -51,17 +51,18 @@ async function askOpenRouter(prompt) {
   });
   try {
     const res = await fetchPromise;
-    if (!res.ok) {
-      console.error('HTTP error:', res)
-      const errorText = await res.text();
-      throw new Error(`AI request failed: ${res.status} ${errorText}`);
-    }
     const result = await res.json();
+    if (!res.ok) {
+      console.error('HTTP error')
+      const err = new Error(`AI request failed: ${result.error?.message}`);
+      err.status = result.error?.status;
+      throw err;
+    }
     
     return result.choices?.[0]?.message?.content || 'Empty response';
   } catch (err) {
-    throw err;
     console.error('AI error:', err);
+    throw err;
   }
 }
 
