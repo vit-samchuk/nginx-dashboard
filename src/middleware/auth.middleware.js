@@ -4,7 +4,7 @@ const { COOKIE_NAME } = require('../config/constants');
 
 function authMiddleware(req, res, next) {
   const token = req.cookies[COOKIE_NAME];
-  console.log(`[auth token] ${token}`)
+  console.log(`[auth token] ${!!token}`)
   if (!token) return res.status(401).json({ message: 'Unauthorized' });
 
   console.log(token)
