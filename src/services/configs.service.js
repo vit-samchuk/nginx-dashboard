@@ -262,6 +262,10 @@ const deleteConfig = async (id) => {
   }
   
   const symlinkPath = path.join(NGINX_PATH.ENABLED, path.basename(cfg.path));
+  console.log({
+    available: cfg.path,
+    enabled: symlinkPath
+  })
   await nginx.deleteConfig(cfg.path, symlinkPath)
   await nginx.reload()
   db.delete(configs).where(eq(configs.id, id)).run();
