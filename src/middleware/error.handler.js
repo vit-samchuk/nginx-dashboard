@@ -1,19 +1,22 @@
 module.exports = (err, req, res, next) => {
-  if (typeof err === 'object') {
-    const props = new Set();
-    
-    let current = err;
-    while (current) {
-      Object.getOwnPropertyNames(current).forEach(p => props.add(p));
-      current = Object.getPrototypeOf(current);
+  const debug = false;
+  if (debug) {
+    if (typeof err === 'object') {
+      const props = new Set();
+      
+      let current = err;
+      while (current) {
+        Object.getOwnPropertyNames(current).forEach(p => props.add(p));
+        current = Object.getPrototypeOf(current);
+      }
+      
+      props.forEach(key => {
+        console.log(`${key}:`, err[key]);
+      });
+      
+    } else {
+      console.warn(err)
     }
-    
-    props.forEach(key => {
-      console.log(`${key}:`, err[key]);
-    });
-    
-  } else {
-    console.warn(err)
   }
   
   
@@ -34,7 +37,7 @@ module.exports = (err, req, res, next) => {
   }
   
   
-  if (response.status >= 500) console.error(err.stack || err);
+  if (response.status >= 500) console.error(`[${new Date().toLocaleString()}]`, err.stack || err);
   
   if (response.status < 500 && err.data) {
     response.data = err.data;
